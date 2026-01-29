@@ -1,4 +1,4 @@
 package com.mygomi.backend.service;
 
-public class CollectionService {
+public class AddressService {
 }
