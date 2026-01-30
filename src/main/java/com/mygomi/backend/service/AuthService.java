@@ -4,6 +4,9 @@ import com.mygomi.backend.api.dto.*;
 import com.mygomi.backend.domain.user.*;
 import com.mygomi.backend.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +17,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final AuthenticationManagerBuilder authenticationManagerBuilder;
 
     @Transactional
     public void signup(SignupRequest request) {
@@ -28,15 +32,17 @@ public class AuthService {
         userRepository.save(user);
     }
 
+    @Transactional
     public TokenResponse login(LoginRequest request) {
+        UsernamePasswordAuthenticationToken authenticationToken =
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword());
+
+        Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
+        String accessToken = jwtTokenProvider.generateToken(authentication);
+
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
-        }
-
-        String token = jwtTokenProvider.generateToken(user.getEmail());
-        return new TokenResponse(token, user.getId());
+        return new TokenResponse(accessToken, user.getId());
     }
 }

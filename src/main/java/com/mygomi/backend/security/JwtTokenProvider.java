@@ -1,42 +1,76 @@
 package com.mygomi.backend.security;
 
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 public class JwtTokenProvider {
-    // 0.12.x 부터는 키 생성을 위해 충분히 긴 문자열이 필요합니다.
-    private final String secretKeyRaw = "mygomi-backend-secret-key-should-be-very-long-123456";
-    private final SecretKey key = Keys.hmacShaKeyFor(secretKeyRaw.getBytes(StandardCharsets.UTF_8));
-    private final long validityInMilliseconds = 3600000 * 24; // 24시간
 
-    public String generateToken(String email) {
-        Date now = new Date();
-        Date validity = new Date(now.getTime() + validityInMilliseconds);
+    private final SecretKey key;
+    private final long validityInMilliseconds;
+
+    // 생성자 주입 방식을 사용하면 IDE 경고가 사라집니다.
+    public JwtTokenProvider(
+            @Value("${jwt.secret}") String secretKey,
+            @Value("${jwt.expiration}") long validityInMilliseconds) {
+        // 비밀키를 바이트로 변환하여 Key 객체 생성
+        this.key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+        this.validityInMilliseconds = validityInMilliseconds;
+    }
+
+    // 토큰 생성
+    public String generateToken(Authentication authentication) {
+        String authorities = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(","));
+
+        long now = (new Date()).getTime();
+        Date validity = new Date(now + validityInMilliseconds);
 
         return Jwts.builder()
-                .subject(email)                  // 0.12.x 문법: setSubject -> subject
-                .issuedAt(now)                   // setIssuedAt -> issuedAt
-                .expiration(validity)            // setExpiration -> expiration
-                .signWith(key)                   // 알고리즘 자동 감지
+                .subject(authentication.getName())
+                .claim("auth", authorities)
+                .issuedAt(new Date())
+                .expiration(validity)
+                .signWith(key)
                 .compact();
     }
 
-    public String getEmail(String token) {
-        return Jwts.parser()                     // parserBuilder() -> parser()
-                .verifyWith(key)                 // setSigningKey() -> verifyWith()
-                .build()
-                .parseSignedClaims(token)        // parseClaimsJws() -> parseSignedClaims()
-                .getPayload()                    // getBody() -> getPayload()
-                .getSubject();
+    // 토큰에서 인증 정보 조회
+    public Authentication getAuthentication(String accessToken) {
+        Claims claims = parseClaims(accessToken);
+
+        if (claims.get("auth") == null) {
+            throw new RuntimeException("권한 정보가 없는 토큰입니다.");
+        }
+
+        Collection<? extends GrantedAuthority> authorities =
+                Arrays.stream(claims.get("auth").toString().split(","))
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toList());
+
+        UserDetails principal = new User(claims.getSubject(), "", authorities);
+        return new UsernamePasswordAuthenticationToken(principal, "", authorities);
     }
 
+    // 토큰 유효성 검증
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
@@ -44,8 +78,27 @@ public class JwtTokenProvider {
                     .build()
                     .parseSignedClaims(token);
             return true;
-        } catch (JwtException | IllegalArgumentException e) {
-            return false;
+        } catch (SecurityException | MalformedJwtException e) {
+            log.info("잘못된 JWT 서명입니다.");
+        } catch (ExpiredJwtException e) {
+            log.info("만료된 JWT 토큰입니다.");
+        } catch (UnsupportedJwtException e) {
+            log.info("지원되지 않는 JWT 토큰입니다.");
+        } catch (IllegalArgumentException e) {
+            log.info("JWT 토큰이 잘못되었습니다.");
+        }
+        return false;
+    }
+
+    private Claims parseClaims(String accessToken) {
+        try {
+            return Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(accessToken)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            return e.getClaims();
         }
     }
 }

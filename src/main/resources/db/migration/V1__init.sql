@@ -22,10 +22,11 @@ CREATE TABLE areas (
 );
 
 -- 3. 사용자 주소 테이블
+-- (주의: 이미 NUMERIC으로 만들어졌으므로 이 파일은 그대로 둬야 합니다)
 CREATE TABLE user_addresses (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT REFERENCES users(id),
-    area_id BIGINT REFERENCES areas(id), -- 수거 규칙 조회를 위한 FK
+    area_id BIGINT REFERENCES areas(id),
     prefecture VARCHAR(50),
     ward VARCHAR(50),
     town VARCHAR(100),
