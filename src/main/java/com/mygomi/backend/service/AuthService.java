@@ -1,7 +1,7 @@
 package com.mygomi.backend.service;
 
 import com.mygomi.backend.api.dto.*;
-import com.mygomi.backend.domain.user.*;
+import com.mygomi.backend.domain.user.*; // Role, User 포함됨
 import com.mygomi.backend.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,11 +24,15 @@ public class AuthService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
         }
+
+        // [수정 완료] role(Role.USER) 추가하여 필수값 채움
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
+                .role(Role.USER) // <--- 이 줄이 핵심입니다!
                 .build();
+
         userRepository.save(user);
     }
 

@@ -27,7 +27,8 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role; // String 대신 아까 만든 Enum 사용
+    @Builder.Default // 빌더 패턴 사용 시 기본값 적용 어노테이션
+    private Role role = Role.USER; // 기본값을 USER로 초기화
 
     private LocalDateTime createdAt;
 
