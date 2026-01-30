@@ -32,7 +32,7 @@ public class SecurityConfig {
                         // 2. 그 외 모든 요청은 인증 필요
                         .anyRequest().authenticated()
                 )
-                // 3. JWT 필터 끼워넣기 (이게 없으면 403 뜸)
+                // 3. JWT 필터 끼워넣기
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -42,5 +42,4 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
 }
