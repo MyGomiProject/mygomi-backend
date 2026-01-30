@@ -1,16 +1,19 @@
 package com.mygomi.backend.security;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
-import java.security.Key;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
 public class JwtTokenProvider {
-    // 로컬 개발용 키 (32바이트 이상)
+    // 0.12.x 부터는 키 생성을 위해 충분히 긴 문자열이 필요합니다.
     private final String secretKeyRaw = "mygomi-backend-secret-key-should-be-very-long-123456";
-    private final Key key = Keys.hmacShaKeyFor(secretKeyRaw.getBytes());
+    private final SecretKey key = Keys.hmacShaKeyFor(secretKeyRaw.getBytes(StandardCharsets.UTF_8));
     private final long validityInMilliseconds = 3600000 * 24; // 24시간
 
     public String generateToken(String email) {
@@ -18,21 +21,28 @@ public class JwtTokenProvider {
         Date validity = new Date(now.getTime() + validityInMilliseconds);
 
         return Jwts.builder()
-                .setSubject(email)
-                .setIssuedAt(now)
-                .setExpiration(validity)
-                .signWith(key, SignatureAlgorithm.HS256)
+                .subject(email)                  // 0.12.x 문법: setSubject -> subject
+                .issuedAt(now)                   // setIssuedAt -> issuedAt
+                .expiration(validity)            // setExpiration -> expiration
+                .signWith(key)                   // 알고리즘 자동 감지
                 .compact();
     }
 
     public String getEmail(String token) {
-        return Jwts.parserBuilder().setSigningKey(key).build()
-                .parseClaimsJws(token).getBody().getSubject();
+        return Jwts.parser()                     // parserBuilder() -> parser()
+                .verifyWith(key)                 // setSigningKey() -> verifyWith()
+                .build()
+                .parseSignedClaims(token)        // parseClaimsJws() -> parseSignedClaims()
+                .getPayload()                    // getBody() -> getPayload()
+                .getSubject();
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
