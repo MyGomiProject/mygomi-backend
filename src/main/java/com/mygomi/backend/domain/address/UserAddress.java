@@ -38,13 +38,11 @@ public class UserAddress extends BaseTimeEntity {
     @Column(name = "is_primary")
     private Boolean isPrimary;
 
-    @Column(precision = 10, scale = 8)
-    private BigDecimal lat;
-    @Column(precision = 11, scale = 8)
-    private BigDecimal lng;
+    private Double lat;
+    private Double lng;
 
     @Builder
-    public UserAddress(Long userId, Area area, String prefecture, String ward, String town, String chome, String banchiText, Boolean isPrimary, BigDecimal lat, BigDecimal lng) {
+    public UserAddress(Long userId, Area area, String prefecture, String ward, String town, String chome, String banchiText, Boolean isPrimary, Double lat, Double lng) {
         this.userId = userId;
         this.area = area;
         this.prefecture = prefecture;
@@ -57,7 +55,7 @@ public class UserAddress extends BaseTimeEntity {
         this.lng = lng;
     }
 
-    public void updateAddress(Area area, String prefecture, String ward, String town, String chome, String banchiText, BigDecimal lat, BigDecimal lng) {
+    public void updateAddress(Area area, String prefecture, String ward, String town, String chome, String banchiText, Double lat, Double lng) {
         this.area = area;
         this.prefecture = prefecture;
         this.ward = ward;

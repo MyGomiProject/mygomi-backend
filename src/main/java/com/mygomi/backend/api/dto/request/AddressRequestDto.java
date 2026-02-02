@@ -24,8 +24,8 @@ public class AddressRequestDto {
     private String banchi;
 
     @Schema(description = "위도")
-    private BigDecimal lat;
+    private Double lat;
 
     @Schema(description = "경도")
-    private BigDecimal lng;
+    private Double lng;
 }
