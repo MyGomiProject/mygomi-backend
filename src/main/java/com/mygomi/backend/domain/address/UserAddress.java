@@ -1,6 +1,6 @@
 package com.mygomi.backend.domain.address;
 
-import com.mygomi.backend.domain.area.Area;
+import com.mygomi.backend.domain.address.Area;
 import com.mygomi.backend.domain.common.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -64,5 +64,9 @@ public class UserAddress extends BaseTimeEntity {
         this.banchiText = banchiText;
         this.lat = lat;
         this.lng = lng;
+    }
+
+    public void updatePrimary(Boolean isPrimary) {
+        this.isPrimary = isPrimary;
     }
 }

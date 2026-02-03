@@ -48,7 +48,7 @@ public class AddressService {
         }
 
         // 3. 🕵️‍♂️ 번지수(Banchi)로 정확한 구역 찾기 (핵심 로직)
-        Area mappedArea = findBestMatchingArea(candidateAreas, request.getBanchiText());
+        Area mappedArea = findBestMatchingArea(candidateAreas, request.getBanchi());
 
         // 4. 대표 주소 설정 시 기존 대표 주소 해제 (auth 로직)
         if (Boolean.TRUE.equals(request.getIsPrimary())) {
@@ -60,13 +60,13 @@ public class AddressService {
 
         // 5. 주소 저장 (User 엔티티 사용하는 auth 방식 유지)
         UserAddress address = UserAddress.builder()
-                .user(user)
+                .userId(user.getId())
                 .area(mappedArea)
                 .prefecture(request.getPrefecture())
                 .ward(request.getWard())
                 .town(request.getTown())
                 .chome(cleanChome)
-                .banchiText(request.getBanchiText())
+                .banchiText(request.getBanchi())
                 .isPrimary(request.getIsPrimary())
                 .lat(request.getLat())
                 .lng(request.getLng())

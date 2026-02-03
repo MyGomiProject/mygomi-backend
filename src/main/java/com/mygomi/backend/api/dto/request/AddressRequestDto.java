@@ -3,7 +3,6 @@ package com.mygomi.backend.api.dto.request;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import java.math.BigDecimal;
 
 @Getter
 @NoArgsConstructor
@@ -28,4 +27,7 @@ public class AddressRequestDto {
 
     @Schema(description = "경도")
     private Double lng;
+
+    @Schema(description = "대표 주소 설정 여부")
+    private Boolean isPrimary;
 }
