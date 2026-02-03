@@ -1,17 +1,31 @@
 package com.mygomi.backend.api.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 
 @Getter
 @NoArgsConstructor
 public class AddressRequestDto {
-    private String prefecture; // 도/현
-    private String ward;       // 구
-    private String town;       // 동/町
-    private String chome;      // 丁目
-    private String banchiText; // 번지
-    private Boolean isPrimary; // 대표 주소 여부
-    private Double lat;        // 위도
-    private Double lng;        // 경도
+    @Schema(description = "도/부/현", example = "도쿄도")
+    private String prefecture;
+
+    @Schema(description = "구/시", example = "아라카와")
+    private String ward;
+
+    @Schema(description = "동/정", example = "히가시닛포리")
+    private String town;
+
+    @Schema(description = "쵸메 (숫자만 있어도 됨)", example = "6")
+    private String chome;
+
+    @Schema(description = "번지/건물명", example = "22-24")
+    private String banchi;
+
+    @Schema(description = "위도")
+    private Double lat;
+
+    @Schema(description = "경도")
+    private Double lng;
 }
