@@ -3,7 +3,6 @@ package com.mygomi.backend.api.dto.request;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import java.math.BigDecimal;
 
 @Getter
 @NoArgsConstructor
@@ -24,8 +23,11 @@ public class AddressRequestDto {
     private String banchi;
 
     @Schema(description = "위도")
-    private BigDecimal lat;
+    private Double lat;
 
     @Schema(description = "경도")
-    private BigDecimal lng;
+    private Double lng;
+
+    @Schema(description = "대표 주소 설정 여부")
+    private Boolean isPrimary;
 }
