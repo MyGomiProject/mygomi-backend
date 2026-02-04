@@ -1,28 +1,29 @@
 package com.mygomi.backend.api.dto.response;
 
 import com.mygomi.backend.domain.address.UserAddress;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
+@Builder
+@AllArgsConstructor
 public class AddressResponseDto {
-    private final String prefecture;
-    private final String ward;
-    private final String town;
-    private final String chome;
-    private final String banchi;
-    private final String fullAddress;
+    private Long id;
+    private String fullAddress; // 전체 주소 문자열
+    private Boolean isPrimary;
+    private Long areaId; // 매칭된 수거 지역 ID
 
-    public AddressResponseDto(UserAddress entity) {
-        this.prefecture = entity.getPrefecture();
-        this.ward = entity.getWard();
-        this.town = entity.getTown();
-        this.chome = entity.getChome();
-        this.banchi = entity.getBanchiText();
+    public static AddressResponseDto from(UserAddress entity) {
+        String fullAddr = String.format("%s %s %s %s %s",
+                entity.getPrefecture(), entity.getWard(), entity.getTown(),
+                entity.getChome(), entity.getBanchiText());
 
-        // 프론트에서 보여주기 편한 전체 주소 문자열 조합
-        this.fullAddress = String.format("%s %s %s %s %s",
-                prefecture, ward, town,
-                (chome != null ? chome + "丁目" : ""),
-                (banchi != null ? banchi : "")).trim();
+        return AddressResponseDto.builder()
+                .id(entity.getId())
+                .fullAddress(fullAddr)
+                .isPrimary(entity.getIsPrimary())
+                .areaId(entity.getArea() != null ? entity.getArea().getId() : null)
+                .build();
     }
 }
