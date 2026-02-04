@@ -1,5 +1,6 @@
 package com.mygomi.backend.api.controller;
 
+import com.mygomi.backend.api.dto.CommonResponse;
 import com.mygomi.backend.api.dto.response.ScheduleResponseDto;
 import com.mygomi.backend.domain.user.User;
 import com.mygomi.backend.domain.user.UserRepository;
@@ -27,7 +28,7 @@ public class ScheduleController {
 
     @Operation(summary = "월간 수거 일정 조회", description = "년/월을 입력하지 않으면 '이번 달' 일정을 보여줍니다.")
     @GetMapping
-    public ResponseEntity<List<ScheduleResponseDto>> getSchedules(
+    public ResponseEntity<CommonResponse<List<ScheduleResponseDto>>> getSchedules(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer month
@@ -44,8 +45,7 @@ public class ScheduleController {
         if (month == null) month = LocalDate.now().getMonthValue();
 
         // 3. 서비스 호출
-        List<ScheduleResponseDto> response = scheduleService.getMonthlySchedule(user.getId(), year, month);
-
-        return ResponseEntity.ok(response);
+        List<ScheduleResponseDto> schedules = scheduleService.getMonthlySchedule(user.getId(), year, month);
+        return ResponseEntity.ok(CommonResponse.success(schedules)); // "data": [...] 형태로 나감
     }
 }
