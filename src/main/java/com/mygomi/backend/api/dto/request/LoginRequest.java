@@ -1,4 +1,4 @@
-package com.mygomi.backend.api.dto;
+package com.mygomi.backend.api.dto.request;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

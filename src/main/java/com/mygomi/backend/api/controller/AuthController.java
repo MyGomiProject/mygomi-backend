@@ -1,6 +1,9 @@
 package com.mygomi.backend.api.controller;
 
-import com.mygomi.backend.api.dto.*;
+import com.mygomi.backend.api.dto.request.LoginRequest;
+import com.mygomi.backend.api.dto.request.SignupRequest;
+import com.mygomi.backend.api.dto.response.CommonResponse;
+import com.mygomi.backend.api.dto.response.TokenResponse;
 import com.mygomi.backend.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

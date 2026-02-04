@@ -1,6 +1,6 @@
 package com.mygomi.backend.api.controller;
 
-import com.mygomi.backend.api.dto.CommonResponse;
+import com.mygomi.backend.api.dto.response.CommonResponse;
 import com.mygomi.backend.api.dto.response.ScheduleResponseDto;
 import com.mygomi.backend.domain.user.User;
 import com.mygomi.backend.domain.user.UserRepository;
