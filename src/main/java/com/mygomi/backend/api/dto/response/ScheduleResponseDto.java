@@ -1,14 +1,23 @@
 package com.mygomi.backend.api.dto.response;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import java.time.LocalDate;
 
 @Getter
+@Builder
 @AllArgsConstructor
 public class ScheduleResponseDto {
-    private LocalDate date;        // 수거 날짜 (2026-02-05)
-    private String wasteName;      // 쓰레기 이름 ("타는 쓰레기")
-    private String wasteType;      // 쓰레기 타입 코드 ("BURNABLE") -> 프론트 아이콘용
-    private String note;           // 비고 ("연말연시 휴무" 등)
+    private String id;              // "1", "2" 와 같은 고유 ID
+    private String title;           // "가연성 쓰레기", "플라스틱"
+    private LocalDate start;        // "2026-02-02" (FullCalendar는 이 필드를 날짜로 인식합니다)
+    private boolean allDay;         // true
+    private ExtendedProps extendedProps;
+
+    @Getter
+    @AllArgsConstructor
+    public static class ExtendedProps {
+        private String wasteType;   // "BURNABLE", "PLASTIC"
+    }
 }
