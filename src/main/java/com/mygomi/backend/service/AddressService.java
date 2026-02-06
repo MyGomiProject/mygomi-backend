@@ -23,6 +23,7 @@ public class AddressService {
     private final UserAddressRepository userAddressRepository;
     private final AreaRepository areaRepository;
     private final UserRepository userRepository;
+    private final GeocodingService geocodingService; // 📍 지오코딩 서비스
 
     @Transactional
     public AddressResponseDto saveOrUpdateAddress(Long userId, AddressRequestDto request) {
@@ -50,7 +51,21 @@ public class AddressService {
         // 3. 🕵️‍♂️ 번지수(Banchi)로 정확한 구역 찾기 (핵심 로직)
         Area mappedArea = findBestMatchingArea(candidateAreas, request.getBanchi());
 
-        // 4. 대표 주소 설정 시 기존 대표 주소 해제 (auth 로직)
+        // 4. 📍 [추가됨] 지오코딩: 주소를 좌표로 변환
+        // [변경 전] "도쿄도 시나가와구 에바라 2丁目 4-41"
+        // [변경 후] "도쿄도 시나가와구 에바라 2-4-41" (구글이 더 좋아하는 형식)
+        String searchAddress = String.format("%s %s %s %s-%s",
+                request.getPrefecture(),
+                request.getWard(),
+                request.getTown(),
+                cleanChome, // "2" (숫자만)
+                request.getBanchi() // "4-41"
+        ).trim();
+
+        GeocodingService.GeoCoordinate coordinate = geocodingService.getCoordinate(searchAddress);
+        log.info("지오코딩 변환: {} -> lat={}, lng={}", searchAddress, coordinate.lat(), coordinate.lng());
+
+        // 5. 대표 주소 설정 시 기존 대표 주소 해제
         if (Boolean.TRUE.equals(request.getIsPrimary())) {
             UserAddress oldPrimary = userAddressRepository.findByUserIdAndIsPrimaryTrue(userId);
             if (oldPrimary != null) {
@@ -58,9 +73,10 @@ public class AddressService {
             }
         }
 
-        // 5. 주소 저장 (User 엔티티 사용하는 auth 방식 유지)
+        // 6. 주소 저장
+        // 주의: UserAddress 엔티티는 보통 User 객체를 받습니다. (.user(user))
         UserAddress address = UserAddress.builder()
-                .userId(user.getId())
+                .user(user)
                 .area(mappedArea)
                 .prefecture(request.getPrefecture())
                 .ward(request.getWard())
@@ -68,8 +84,8 @@ public class AddressService {
                 .chome(cleanChome)
                 .banchiText(request.getBanchi())
                 .isPrimary(request.getIsPrimary())
-                .lat(request.getLat())
-                .lng(request.getLng())
+                .lat(coordinate.lat()) // 📍 지오코딩된 위도
+                .lng(coordinate.lng()) // 📍 지오코딩된 경도
                 .build();
 
         UserAddress saved = userAddressRepository.save(address);
@@ -84,16 +100,15 @@ public class AddressService {
     }
 
     // ==========================================
-    // 🕵️‍♂️ 번지수 매칭 로직 (develop에서 가져옴)
+    // 🕵️‍♂️ 번지수 매칭 로직 (기존 유지)
     // ==========================================
     private Area findBestMatchingArea(List<Area> areas, String userBanchi) {
-        if (areas.isEmpty()) return null;
+        if (areas == null || areas.isEmpty()) return null; // null safe 처리 추가
         if (areas.size() == 1) return areas.get(0);
         if (userBanchi == null || userBanchi.isBlank()) return areas.get(0);
 
         int targetNumber;
         try {
-            // "23-5" -> 23 추출
             String mainNumber = userBanchi.split("-")[0].replaceAll("[^0-9]", "");
             targetNumber = Integer.parseInt(mainNumber);
         } catch (NumberFormatException e) {
@@ -124,5 +139,29 @@ public class AddressService {
             }
         }
         return areas.get(0);
+    }
+
+    @Transactional
+    public void updatePrimaryAddress(Long userId, Long newPrimaryAddressId) {
+        // 1. 내 주소인지 확인하면서 타겟 주소 가져오기
+        UserAddress newPrimary = userAddressRepository.findById(newPrimaryAddressId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주소입니다."));
+
+        if (!newPrimary.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("본인의 주소만 설정할 수 있습니다.");
+        }
+
+        // 2. 기존 대표 주소 찾아서 해제하기 (False)
+        UserAddress oldPrimary = userAddressRepository.findByUserIdAndIsPrimaryTrue(userId);
+        if (oldPrimary != null) {
+            // 이미 이게 대표 주소라면 아무것도 안 해도 됨 (선택사항)
+            if (oldPrimary.getId().equals(newPrimaryAddressId)) {
+                return;
+            }
+            oldPrimary.updatePrimary(false);
+        }
+
+        // 3. 새로운 주소를 대표로 설정하기 (True)
+        newPrimary.updatePrimary(true);
     }
 }
