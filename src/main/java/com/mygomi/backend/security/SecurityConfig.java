@@ -39,7 +39,7 @@ public class SecurityConfig {
                         // 2. 그 외 모든 요청은 인증 필요
                         .anyRequest().authenticated()
                          */
-                        // 🚀 테스트를 위해 모든 요청을 허용 (permitAll)
+                        // 테스트를 위해 모든 요청을 허용 (permitAll)
                         .anyRequest().permitAll()
                 )
                 // 3. JWT 필터 끼워넣기

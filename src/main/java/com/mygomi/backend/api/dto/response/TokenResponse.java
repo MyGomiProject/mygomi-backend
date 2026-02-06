@@ -1,4 +1,4 @@
-package com.mygomi.backend.api.dto;
+package com.mygomi.backend.api.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
