@@ -68,4 +68,16 @@ public class UserAddressController {
 
         return user.getId();
     }
+
+    @Operation(summary = "대표 주소로 설정", description = "특정 주소를 대표 주소로 변경합니다. (기존 대표 주소는 자동으로 해제됨)")
+    @PatchMapping("/{addressId}/primary")
+    public ResponseEntity<Void> setPrimaryAddress(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long addressId) {
+
+        Long userId = getUserIdFromToken(userDetails);
+        addressService.updatePrimaryAddress(userId, addressId);
+
+        return ResponseEntity.ok().build();
+    }
 }

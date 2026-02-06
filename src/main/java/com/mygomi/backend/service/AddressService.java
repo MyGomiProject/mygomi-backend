@@ -140,4 +140,28 @@ public class AddressService {
         }
         return areas.get(0);
     }
+
+    @Transactional
+    public void updatePrimaryAddress(Long userId, Long newPrimaryAddressId) {
+        // 1. 내 주소인지 확인하면서 타겟 주소 가져오기
+        UserAddress newPrimary = userAddressRepository.findById(newPrimaryAddressId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주소입니다."));
+
+        if (!newPrimary.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("본인의 주소만 설정할 수 있습니다.");
+        }
+
+        // 2. 기존 대표 주소 찾아서 해제하기 (False)
+        UserAddress oldPrimary = userAddressRepository.findByUserIdAndIsPrimaryTrue(userId);
+        if (oldPrimary != null) {
+            // 이미 이게 대표 주소라면 아무것도 안 해도 됨 (선택사항)
+            if (oldPrimary.getId().equals(newPrimaryAddressId)) {
+                return;
+            }
+            oldPrimary.updatePrimary(false);
+        }
+
+        // 3. 새로운 주소를 대표로 설정하기 (True)
+        newPrimary.updatePrimary(true);
+    }
 }
