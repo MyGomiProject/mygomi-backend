@@ -52,13 +52,14 @@ public class AddressService {
         Area mappedArea = findBestMatchingArea(candidateAreas, request.getBanchi());
 
         // 4. 📍 [추가됨] 지오코딩: 주소를 좌표로 변환
-        // 검색 정확도를 위해 "丁目"를 붙여서 검색합니다.
-        String searchAddress = String.format("%s %s %s %s %s",
+        // [변경 전] "도쿄도 시나가와구 에바라 2丁目 4-41"
+        // [변경 후] "도쿄도 시나가와구 에바라 2-4-41" (구글이 더 좋아하는 형식)
+        String searchAddress = String.format("%s %s %s %s-%s",
                 request.getPrefecture(),
                 request.getWard(),
                 request.getTown(),
-                (cleanChome != null && !cleanChome.isEmpty()) ? cleanChome + "丁目" : "",
-                request.getBanchi() != null ? request.getBanchi() : ""
+                cleanChome, // "2" (숫자만)
+                request.getBanchi() // "4-41"
         ).trim();
 
         GeocodingService.GeoCoordinate coordinate = geocodingService.getCoordinate(searchAddress);

@@ -19,7 +19,6 @@ public class GeocodingService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    // 환경 변수에서 가져온 키가 여기에 주입됩니다.
     @Value("${google.maps.api-key}")
     private String apiKey;
 
@@ -31,21 +30,20 @@ public class GeocodingService {
                 return new GeoCoordinate(0.0, 0.0);
             }
 
-            // 1. URL 생성 (한글 주소 인코딩 자동 처리)
+            // 📍 정확도 UP! URL 생성 로직
             URI uri = UriComponentsBuilder.fromHttpUrl(GOOGLE_API_URL)
                     .queryParam("address", fullAddress)
                     .queryParam("key", apiKey)
-                    .queryParam("language", "ko") // 응답 언어 (선택)
+                    .queryParam("language", "ko") // 결과 언어 설정
+                    .queryParam("region", "jp")   // ✅ 핵심: 일본 지역 바이어싱 (정확도 상승)
                     .build()
                     .toUri();
 
             log.info("Google Maps 요청: {}", fullAddress);
 
-            // 2. API 호출
             String response = restTemplate.getForObject(uri, String.class);
             JsonNode root = objectMapper.readTree(response);
 
-            // 3. 응답 상태 확인 ('OK'가 아니면 실패로 간주)
             String status = root.path("status").asText();
             if (!"OK".equals(status)) {
                 String errorMessage = root.path("error_message").asText();
@@ -53,10 +51,15 @@ public class GeocodingService {
                 return new GeoCoordinate(0.0, 0.0);
             }
 
-            // 4. 좌표 추출 (첫 번째 결과 사용)
-            JsonNode location = root.path("results").get(0)
-                    .path("geometry").path("location");
+            // 결과 파싱
+            JsonNode result = root.path("results").get(0);
 
+            // 💡 (선택 사항) 정확도 로그 찍어보기
+            String locationType = result.path("geometry").path("location_type").asText();
+            log.info("검색 정확도 타입: {}", locationType);
+            // ROOFTOP: 정확한 건물 / RANGE_INTERPOLATED: 주소 범위 사이 / GEOMETRIC_CENTER: 동네 중심
+
+            JsonNode location = result.path("geometry").path("location");
             double lat = location.path("lat").asDouble();
             double lng = location.path("lng").asDouble();
 
@@ -69,6 +72,5 @@ public class GeocodingService {
         }
     }
 
-    // 좌표 데이터를 담는 불변 객체 (DTO)
     public record GeoCoordinate(Double lat, Double lng) {}
 }
