@@ -30,7 +30,6 @@ public class SharePostResponseDto {
     private String prefecture;
     private String ward;
     private String town;
-    private String address;
     private Double lat;
     private Double lng;
     
@@ -60,7 +59,6 @@ public class SharePostResponseDto {
                 .prefecture(post.getPrefecture())
                 .ward(post.getWard())
                 .town(post.getTown())
-                .address(post.getAddress())
                 .lat(post.getLat())
                 .lng(post.getLng())
                 .imageUrls(imageUrls)
@@ -85,7 +83,6 @@ public class SharePostResponseDto {
                 .prefecture(dto.getPrefecture())
                 .ward(dto.getWard())
                 .town(dto.getTown())
-                .address(dto.getAddress())
                 .lat(dto.getLat())
                 .lng(dto.getLng())
                 .imageUrls(dto.getImageUrls())

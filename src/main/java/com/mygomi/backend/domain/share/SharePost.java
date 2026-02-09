@@ -44,7 +44,6 @@ public class SharePost extends BaseTimeEntity {
     private String prefecture;
     private String ward;
     private String town;
-    private String address;
     
     @Column(nullable = false)
     private Double lat;
@@ -57,7 +56,7 @@ public class SharePost extends BaseTimeEntity {
 
     @Builder
     public SharePost(Long userId, String title, String description, ShareCategory category,
-                     String prefecture, String ward, String town, String address,
+                     String prefecture, String ward, String town,
                      Double lat, Double lng) {
         this.userId = userId;
         this.title = title;
@@ -66,7 +65,6 @@ public class SharePost extends BaseTimeEntity {
         this.prefecture = prefecture;
         this.ward = ward;
         this.town = town;
-        this.address = address;
         this.lat = lat;
         this.lng = lng;
         this.viewCount = 0;

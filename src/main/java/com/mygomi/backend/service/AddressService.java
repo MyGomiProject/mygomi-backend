@@ -99,6 +99,72 @@ public class AddressService {
                 .toList();
     }
 
+    /**
+     * 사용자의 주 주소(대표 주소) 가져오기
+     */
+    @Transactional(readOnly = true)
+    public UserAddress getPrimaryAddress(Long userId) {
+        UserAddress primaryAddress = userAddressRepository.findByUserIdAndIsPrimaryTrue(userId);
+        if (primaryAddress == null) {
+            throw new IllegalArgumentException("등록된 대표 주소가 없습니다. 주소를 먼저 등록해주세요.");
+        }
+        return primaryAddress;
+    }
+
+    /**
+     * 대표 주소 변경 (배민 방식)
+     */
+    @Transactional
+    public AddressResponseDto changePrimaryAddress(Long userId, Long addressId) {
+        // 1. 해당 주소가 존재하고 본인 것인지 확인
+        UserAddress targetAddress = userAddressRepository.findById(addressId)
+                .orElseThrow(() -> new IllegalArgumentException("주소를 찾을 수 없습니다."));
+        
+        if (!targetAddress.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("본인의 주소만 변경할 수 있습니다.");
+        }
+        
+        // 2. 기존 대표 주소 해제
+        UserAddress oldPrimary = userAddressRepository.findByUserIdAndIsPrimaryTrue(userId);
+        if (oldPrimary != null) {
+            oldPrimary.updatePrimary(false);
+        }
+        
+        // 3. 새로운 대표 주소 설정
+        targetAddress.updatePrimary(true);
+        
+        log.info("대표 주소 변경 완료 - userId: {}, addressId: {}", userId, addressId);
+        
+        return AddressResponseDto.from(targetAddress);
+    }
+
+    /**
+     * 주소 삭제
+     */
+    @Transactional
+    public void deleteAddress(Long userId, Long addressId) {
+        // 1. 해당 주소가 존재하고 본인 것인지 확인
+        UserAddress address = userAddressRepository.findById(addressId)
+                .orElseThrow(() -> new IllegalArgumentException("주소를 찾을 수 없습니다."));
+        
+        if (!address.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("본인의 주소만 삭제할 수 있습니다.");
+        }
+        
+        // 2. 대표 주소인 경우 삭제 불가 (최소 1개는 있어야 함)
+        if (Boolean.TRUE.equals(address.getIsPrimary())) {
+            long addressCount = userAddressRepository.findByUserId(userId).size();
+            if (addressCount <= 1) {
+                throw new IllegalArgumentException("대표 주소는 삭제할 수 없습니다. 다른 주소를 대표로 설정한 후 삭제해주세요.");
+            }
+        }
+        
+        // 3. 삭제
+        userAddressRepository.delete(address);
+        
+        log.info("주소 삭제 완료 - userId: {}, addressId: {}", userId, addressId);
+    }
+
     // ==========================================
     // 🕵️‍♂️ 번지수 매칭 로직 (기존 유지)
     // ==========================================

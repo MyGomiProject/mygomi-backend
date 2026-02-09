@@ -16,7 +16,6 @@ CREATE TABLE share_posts (
     prefecture VARCHAR(50),
     ward VARCHAR(50),
     town VARCHAR(100),
-    address VARCHAR(200),
     lat DOUBLE PRECISION NOT NULL,
     lng DOUBLE PRECISION NOT NULL,
 
@@ -45,7 +44,6 @@ CREATE TABLE share_post_images (
     share_post_id BIGINT NOT NULL,
     image_url VARCHAR(500) NOT NULL,
     display_order INTEGER NOT NULL DEFAULT 0,
-
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
