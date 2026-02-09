@@ -8,6 +8,9 @@ import com.mygomi.backend.domain.user.User;
 import com.mygomi.backend.domain.user.UserRepository;
 import com.mygomi.backend.service.SharePostService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Encoding;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -39,16 +42,24 @@ public class SharePostController {
     private final com.mygomi.backend.service.AddressService addressService; // [추가] 주소 서비스
 
     @Operation(summary = "게시글 등록", description = "이미지와 함께 게시글을 등록합니다 (최대 5장)")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            content = @Content(
+                    mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                    encoding = @Encoding(name = "request", contentType = MediaType.APPLICATION_JSON_VALUE)
+            )
+    )
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CommonResponse<SharePostResponseDto>> createPost(
             @AuthenticationPrincipal UserDetails userDetails,
-            @Valid @ModelAttribute SharePostRequestDto request,
+
+            @RequestPart("request") @Valid SharePostRequestDto request,
+
             @RequestPart(value = "images", required = false) List<MultipartFile> images) throws IOException {
-        
-        Long userId = getUserIdFromToken(userDetails);
-        
+
+        Long userId = getUserIdFromToken(userDetails); // 아래 헬퍼 메서드 사용 (혹은 userDetails.getUser().getId())
+
         SharePostResponseDto response = sharePostService.createPost(userId, request, images);
-        
+
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(CommonResponse.success(response));
