@@ -53,6 +53,30 @@ public class UserAddressController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "대표 주소 변경", description = "선택한 주소를 대표 주소로 설정합니다 (배민 방식)")
+    @PatchMapping("/{addressId}/primary")
+    public ResponseEntity<AddressResponseDto> changePrimaryAddress(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long addressId) {
+        
+        Long userId = getUserIdFromToken(userDetails);
+        
+        AddressResponseDto response = addressService.changePrimaryAddress(userId, addressId);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "주소 삭제", description = "등록된 주소를 삭제합니다 (대표 주소가 1개만 남은 경우 삭제 불가)")
+    @DeleteMapping("/{addressId}")
+    public ResponseEntity<String> deleteAddress(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long addressId) {
+        
+        Long userId = getUserIdFromToken(userDetails);
+        
+        addressService.deleteAddress(userId, addressId);
+        return ResponseEntity.ok("주소가 삭제되었습니다.");
+    }
+
     // 🕵️‍♂️ 편의 메서드: 토큰 정보(UserDetails)로 실제 유저 ID 찾기
     private Long getUserIdFromToken(UserDetails userDetails) {
         if (userDetails == null) {

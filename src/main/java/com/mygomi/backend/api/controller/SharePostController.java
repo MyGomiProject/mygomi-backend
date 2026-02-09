@@ -36,6 +36,7 @@ public class SharePostController {
 
     private final SharePostService sharePostService;
     private final UserRepository userRepository;
+    private final com.mygomi.backend.service.AddressService addressService; // [추가] 주소 서비스
 
     @Operation(summary = "게시글 등록", description = "이미지와 함께 게시글을 등록합니다 (최대 5장)")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -148,6 +149,35 @@ public class SharePostController {
             @PageableDefault(size = 20) Pageable pageable) {
         
         Page<SharePostResponseDto> response = sharePostService.getNearbyPosts(lat, lng, radiusKm, sortBy, pageable);
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    @Operation(
+        summary = "내 주소 근처 게시글 조회", 
+        description = "로그인한 사용자의 대표 주소 기준으로 반경 내 게시글을 조회합니다"
+    )
+    @GetMapping("/nearby/me")
+    public ResponseEntity<CommonResponse<Page<SharePostResponseDto>>> getNearbyPostsByMyAddress(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "5.0") Double radiusKm,
+            @RequestParam(defaultValue = "distance") String sortBy,
+            @PageableDefault(size = 20) Pageable pageable) {
+        
+        // 1. 사용자 ID 가져오기
+        Long userId = getUserIdFromToken(userDetails);
+        
+        // 2. 사용자의 대표 주소 가져오기
+        com.mygomi.backend.domain.address.UserAddress primaryAddress = addressService.getPrimaryAddress(userId);
+        
+        // 3. 대표 주소의 좌표로 반경 검색
+        Page<SharePostResponseDto> response = sharePostService.getNearbyPosts(
+            primaryAddress.getLat(), 
+            primaryAddress.getLng(), 
+            radiusKm, 
+            sortBy, 
+            pageable
+        );
+        
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 

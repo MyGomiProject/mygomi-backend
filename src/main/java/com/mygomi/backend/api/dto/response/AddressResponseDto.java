@@ -13,6 +13,8 @@ public class AddressResponseDto {
     private String fullAddress; // 전체 주소 문자열
     private Boolean isPrimary;
     private Long areaId; // 매칭된 수거 지역 ID
+    private Double lat;
+    private Double lng;
 
     public static AddressResponseDto from(UserAddress entity) {
         String fullAddr = String.format("%s %s %s %s %s",
@@ -24,6 +26,8 @@ public class AddressResponseDto {
                 .fullAddress(fullAddr)
                 .isPrimary(entity.getIsPrimary())
                 .areaId(entity.getArea() != null ? entity.getArea().getId() : null)
+                .lat(entity.getLat())
+                .lng(entity.getLng())
                 .build();
     }
 }

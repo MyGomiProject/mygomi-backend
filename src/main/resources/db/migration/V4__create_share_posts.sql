@@ -16,7 +16,6 @@ CREATE TABLE share_posts (
     prefecture VARCHAR(50),
     ward VARCHAR(50),
     town VARCHAR(100),
-    address VARCHAR(200),
     lat DOUBLE PRECISION NOT NULL,
     lng DOUBLE PRECISION NOT NULL,
 

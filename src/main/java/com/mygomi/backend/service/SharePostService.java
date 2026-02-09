@@ -31,32 +31,35 @@ public class SharePostService {
 
     private final SharePostRepository sharePostRepository;
     private final SharePostImageRepository sharePostImageRepository;
+    private final AddressService addressService; // [추가] 주소 서비스
 
 
-    /**
-     * 게시글 등록
-     */
     @Transactional
     public SharePostResponseDto createPost(Long userId, SharePostRequestDto request, List<MultipartFile> images) {
-        // 1. 게시글 엔티티 생성
+        // 1. 작성자의 대표 주소 가져오기
+        com.mygomi.backend.domain.address.UserAddress primaryAddress = addressService.getPrimaryAddress(userId);
+
+        log.info("게시글 작성 - userId: {}, 대표주소: {} {}, 좌표: ({}, {})",
+                userId, primaryAddress.getWard(), primaryAddress.getTown(),
+                primaryAddress.getLat(), primaryAddress.getLng());
+
+        // 2. 게시글 엔티티 생성 (대표 주소의 좌표 사용)
         SharePost post = SharePost.builder()
                 .userId(userId)
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .category(request.getCategory())
-                .prefecture(request.getPrefecture())
-                .ward(request.getWard())
-                .town(request.getTown())
-                .address(request.getAddress())
-                .lat(request.getLat())
-                .lng(request.getLng())
-                //.status(ShareStatus.OPEN) sharepost에서 존재하지않아서 그냥 open으로
+                .title(request.getTitle())           // ← RequestDto에서
+                .description(request.getDescription()) // ← RequestDto에서
+                .category(request.getCategory())      // ← RequestDto에서
+                .prefecture(primaryAddress.getPrefecture()) // ← 대표 주소에서
+                .ward(primaryAddress.getWard())             // ← 대표 주소에서
+                .town(primaryAddress.getTown())             // ← 대표 주소에서
+                .lat(primaryAddress.getLat())               // ← 대표 주소에서
+                .lng(primaryAddress.getLng())               // ← 대표 주소에서
                 .build();
 
-        // 2. 게시글 저장
+        // 3. 게시글 저장
         SharePost savedPost = sharePostRepository.save(post);
 
-        // 3. 이미지 처리 (파일이 있다면)
+        // 4. 이미지 처리 (파일이 있다면)
         if (images != null && !images.isEmpty()) {
             uploadAndSaveImages(savedPost, images);
         }
@@ -178,9 +181,6 @@ public class SharePostService {
         return new PageImpl<>(dtos, pageable, posts.size());
     }
 
-    // =========================================================
-    // Private Helper Methods
-    // =========================================================
 
     private SharePost findPostById(Long id) {
         return sharePostRepository.findById(id)
