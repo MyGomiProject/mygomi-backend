@@ -1,5 +1,6 @@
 package com.mygomi.backend.repository;
 
+import com.mygomi.backend.domain.share.ShareCategory;
 import com.mygomi.backend.domain.share.SharePost;
 import com.mygomi.backend.domain.share.ShareStatus;
 import org.springframework.data.domain.Page;
@@ -20,7 +21,13 @@ public interface SharePostRepository extends JpaRepository<SharePost, Long> {
     
     // 상태별 조회
     Page<SharePost> findByStatusOrderByCreatedAtDesc(ShareStatus status, Pageable pageable);
-    
+
+    // 1. 지역(Ward) + 카테고리 + 상태 필터링
+    Page<SharePost> findByWardAndCategoryAndStatusOrderByCreatedAtDesc(String ward, ShareCategory category, ShareStatus status, Pageable pageable);
+
+    // 2. 카테고리 + 상태 필터링 (지역 상관없이)
+    Page<SharePost> findByCategoryAndStatusOrderByCreatedAtDesc(ShareCategory category, ShareStatus status, Pageable pageable);
+
     /**
      * 반경 검색 (Haversine 공식 사용)
      * 지구 반지름: 6371km
