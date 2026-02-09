@@ -79,24 +79,31 @@ public class SharePostService {
 
         return SharePostResponseDto.from(post);
     }
-
     /**
-     * 게시글 목록 조회 (필터링)
+     * 게시글 목록 조회 (지역 + 카테고리 필터링)
      */
-    public Page<SharePostResponseDto> getPosts(String ward, ShareStatus status, Pageable pageable) {
+    public Page<SharePostResponseDto> getPosts(String ward, ShareCategory category, ShareStatus status, Pageable pageable) {
         Page<SharePost> posts;
 
-        if (ward != null && !ward.isBlank()) {
-            // 지역 + 상태 필터링
+        // 1. 지역 & 카테고리 둘 다 있음
+        if (ward != null && !ward.isBlank() && category != null) {
+            posts = sharePostRepository.findByWardAndCategoryAndStatusOrderByCreatedAtDesc(ward, category, status, pageable);
+        }
+        // 2. 지역만 있음
+        else if (ward != null && !ward.isBlank()) {
             posts = sharePostRepository.findByWardAndStatusOrderByCreatedAtDesc(ward, status, pageable);
-        } else {
-            // 상태 필터링만
+        }
+        // 3. 카테고리만 있음
+        else if (category != null) {
+            posts = sharePostRepository.findByCategoryAndStatusOrderByCreatedAtDesc(category, status, pageable);
+        }
+        // 4. 아무것도 없음 (전체 조회)
+        else {
             posts = sharePostRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
         }
 
         return posts.map(SharePostResponseDto::from);
     }
-
     /**
      * 내 게시글 조회
      */

@@ -76,10 +76,11 @@ public class SharePostController {
     @GetMapping
     public ResponseEntity<CommonResponse<Page<SharePostResponseDto>>> getPosts(
             @RequestParam(required = false) String ward,
+            @RequestParam(required = false) com.mygomi.backend.domain.share.ShareCategory category,
             @RequestParam(defaultValue = "OPEN") ShareStatus status,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         
-        Page<SharePostResponseDto> response = sharePostService.getPosts(ward, status, pageable);
+        Page<SharePostResponseDto> response = sharePostService.getPosts(ward, category, status, pageable);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
