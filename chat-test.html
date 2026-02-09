@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>마이고미 채팅 테스트</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        #messages { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+        .my-msg { color: blue; text-align: right; }
+        .other-msg { color: green; text-align: left; }
+    </style>
+</head>
+<body>
+<h2>🐻 마이고미 실시간 채팅</h2>
+
+<div>
+    <label>채팅방 ID: <input type="number" id="roomId" value="1" readonly></label>
+    <label>닉네임: <input type="text" id="sender" placeholder="이름 입력"></label>
+    <button onclick="connect()">연결하기 (입장)</button>
+</div>
+<br>
+
+<div id="messages"></div>
+
+<div style="display: flex;">
+    <input type="text" id="message" placeholder="메시지를 입력하세요" style="flex: 1;" onkeypress="if(event.keyCode==13) sendMessage()">
+    <button onclick="sendMessage()">전송</button>
+</div>
+
+<script>
+    var stompClient = null;
+
+    function connect() {
+        var sender = document.getElementById('sender').value;
+        if (!sender) { alert("닉네임을 입력하세요!"); return; }
+
+        // 1. 서버와 연결 (EndPoint: /ws-stomp)
+        var socket = new SockJS('http://localhost:8080/ws-stomp');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+            console.log('Connected: ' + frame);
+            alert(sender + "님 입장 성공! 🚀");
+
+            // 2. 구독 신청 (/sub/chat/room/1)
+            var roomId = document.getElementById('roomId').value;
+            stompClient.subscribe('/sub/chat/room/' + roomId, function (messageOutput) {
+                showMessage(JSON.parse(messageOutput.body));
+            });
+        }, function(error) {
+            alert("연결 실패... 서버가 켜져 있나요?");
+            console.log(error);
+        });
+    }
+
+    function sendMessage() {
+        var roomId = document.getElementById('roomId').value;
+        var sender = document.getElementById('sender').value;
+        var message = document.getElementById('message').value;
+
+        if (!stompClient) { alert("먼저 연결하기 버튼을 눌러주세요!"); return; }
+        if (!message) return;
+
+        // 3. 메시지 전송 (/pub/chat/message)
+        stompClient.send("/pub/chat/message", {}, JSON.stringify({
+            'roomId': roomId,
+            'sender': sender,
+            'message': message
+        }));
+
+        document.getElementById('message').value = ''; // 입력창 비우기
+    }
+
+    function showMessage(msg) {
+        var messageArea = document.getElementById('messages');
+        var messageElement = document.createElement('div');
+
+        var myName = document.getElementById('sender').value;
+        if (msg.sender === myName) {
+            messageElement.className = 'my-msg';
+            messageElement.innerText = "나: " + msg.message;
+        } else {
+            messageElement.className = 'other-msg';
+            messageElement.innerText = msg.sender + ": " + msg.message;
+        }
+
+        messageArea.appendChild(messageElement);
+        messageArea.scrollTop = messageArea.scrollHeight; // 스크롤 내리기
+    }
+</script>
+</body>
+</html>
