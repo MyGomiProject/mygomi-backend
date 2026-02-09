@@ -46,6 +46,8 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
     // OpenCSV 라이브러리
     implementation 'com.opencsv:opencsv:5.9'
+    //web socket
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
 }
 
 tasks.named('test') {
