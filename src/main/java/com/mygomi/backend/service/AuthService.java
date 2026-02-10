@@ -4,6 +4,7 @@ import com.mygomi.backend.api.dto.request.LoginRequest;
 import com.mygomi.backend.api.dto.request.SignupRequest;
 import com.mygomi.backend.api.dto.response.TokenResponse;
 import com.mygomi.backend.domain.user.*; // Role, User 포함됨
+import com.mygomi.backend.repository.UserRepository;
 import com.mygomi.backend.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
