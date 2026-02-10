@@ -3,7 +3,7 @@ package com.mygomi.backend.service;
 import com.mygomi.backend.api.dto.response.AddressResponseDto;
 import com.mygomi.backend.api.dto.response.UserResponseDto;
 import com.mygomi.backend.domain.user.User;
-import com.mygomi.backend.domain.user.UserRepository;
+import com.mygomi.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
