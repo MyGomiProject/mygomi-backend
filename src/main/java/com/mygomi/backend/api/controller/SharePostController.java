@@ -72,7 +72,7 @@ public class SharePostController {
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-    @Operation(summary = "게시글 목록 조회", description = "지역별/상태별로 게시글 목록을 조회합니다")
+    @Operation(summary = "게시글 목록 조회", description = "지역별/상태별로 게시글 목록을 조회합니다 sort내부의 String 제거후 테스트")
     @GetMapping
     public ResponseEntity<CommonResponse<Page<SharePostResponseDto>>> getPosts(
             @RequestParam(required = false) String ward,
@@ -148,23 +148,7 @@ public class SharePostController {
     }
 
     @Operation(
-        summary = "근처 게시글 조회 (지도용)", 
-        description = "반경 내의 게시글을 조회합니다. sortBy: distance(거리순), latest(최신순)"
-    )
-    @GetMapping("/nearby")
-    public ResponseEntity<CommonResponse<Page<SharePostResponseDto>>> getNearbyPosts(
-            @RequestParam Double lat,
-            @RequestParam Double lng,
-            @RequestParam(defaultValue = "5.0") Double radiusKm,
-            @RequestParam(defaultValue = "distance") String sortBy,
-            @PageableDefault(size = 20) Pageable pageable) {
-        
-        Page<SharePostResponseDto> response = sharePostService.getNearbyPosts(lat, lng, radiusKm, sortBy, pageable);
-        return ResponseEntity.ok(CommonResponse.success(response));
-    }
-
-    @Operation(
-        summary = "내 주소 근처 게시글 조회", 
+        summary = "내 주소 근처 게시글 조회",
         description = "로그인한 사용자의 대표 주소 기준으로 반경 내 게시글을 조회합니다"
     )
     @GetMapping("/nearby/me")
