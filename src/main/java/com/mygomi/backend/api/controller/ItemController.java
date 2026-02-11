@@ -2,7 +2,7 @@ package com.mygomi.backend.api.controller;
 
 import com.mygomi.backend.api.dto.response.ItemResponseDto;
 import com.mygomi.backend.domain.user.User;
-import com.mygomi.backend.domain.user.UserRepository;
+import com.mygomi.backend.repository.UserRepository;
 import com.mygomi.backend.service.ItemService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

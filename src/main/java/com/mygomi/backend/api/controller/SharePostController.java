@@ -5,12 +5,11 @@ import com.mygomi.backend.api.dto.request.SharePostRequestDto;
 import com.mygomi.backend.api.dto.response.SharePostResponseDto;
 import com.mygomi.backend.domain.share.ShareStatus;
 import com.mygomi.backend.domain.user.User;
-import com.mygomi.backend.domain.user.UserRepository;
+import com.mygomi.backend.repository.UserRepository;
 import com.mygomi.backend.service.SharePostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Encoding;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -76,10 +75,11 @@ public class SharePostController {
     @GetMapping
     public ResponseEntity<CommonResponse<Page<SharePostResponseDto>>> getPosts(
             @RequestParam(required = false) String ward,
+            @RequestParam(required = false) com.mygomi.backend.domain.share.ShareCategory category,
             @RequestParam(defaultValue = "OPEN") ShareStatus status,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         
-        Page<SharePostResponseDto> response = sharePostService.getPosts(ward, status, pageable);
+        Page<SharePostResponseDto> response = sharePostService.getPosts(ward, category, status, pageable);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 

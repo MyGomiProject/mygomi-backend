@@ -5,7 +5,7 @@ import com.mygomi.backend.api.dto.response.AddressResponseDto;
 import com.mygomi.backend.domain.address.Area;
 import com.mygomi.backend.domain.address.UserAddress;
 import com.mygomi.backend.domain.user.User;
-import com.mygomi.backend.domain.user.UserRepository;
+import com.mygomi.backend.repository.UserRepository;
 import com.mygomi.backend.repository.AreaRepository;
 import com.mygomi.backend.repository.UserAddressRepository;
 import lombok.RequiredArgsConstructor;

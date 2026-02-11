@@ -3,7 +3,7 @@ package com.mygomi.backend.api.controller;
 import com.mygomi.backend.api.dto.request.AddressRequestDto;
 import com.mygomi.backend.api.dto.response.AddressResponseDto;
 import com.mygomi.backend.domain.user.User;
-import com.mygomi.backend.domain.user.UserRepository;
+import com.mygomi.backend.repository.UserRepository;
 import com.mygomi.backend.service.AddressService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -91,17 +91,5 @@ public class UserAddressController {
                 .orElseThrow(() -> new UsernameNotFoundException("가입되지 않은 사용자입니다. email=" + email));
 
         return user.getId();
-    }
-
-    @Operation(summary = "대표 주소로 설정", description = "특정 주소를 대표 주소로 변경합니다. (기존 대표 주소는 자동으로 해제됨)")
-    @PatchMapping("/{addressId}/primary")
-    public ResponseEntity<Void> setPrimaryAddress(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable Long addressId) {
-
-        Long userId = getUserIdFromToken(userDetails);
-        addressService.updatePrimaryAddress(userId, addressId);
-
-        return ResponseEntity.ok().build();
     }
 }
