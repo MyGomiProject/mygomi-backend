@@ -3,12 +3,15 @@ package com.mygomi.backend.api.controller;
 import com.mygomi.backend.api.dto.request.InfoReportRequestDto;
 import com.mygomi.backend.api.dto.request.SharePostReportRequestDto;
 import com.mygomi.backend.api.dto.response.ReportResponseDto;
+import com.mygomi.backend.domain.report.ReportReason;
 import com.mygomi.backend.domain.report.ReportStatus;
 import com.mygomi.backend.domain.report.ReportType;
 import com.mygomi.backend.domain.user.User;
 import com.mygomi.backend.repository.UserRepository;
 import com.mygomi.backend.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Encoding;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +27,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 @Tag(name = "Report", description = "신고 API")
@@ -47,15 +52,20 @@ public class ReportController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         Long reporterId = getUserId(userDetails);
-        ReportResponseDto response = reportService.reportSharePost(postId, dto, reporterId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(reportService.reportSharePost(postId, dto, reporterId));
     }
 
     // ========================================
     // 잘못된 정보 신고 접수 (첨부파일 포함)
-    // POST /api/reports/info  (multipart)
+    // POST /api/reports/info  (multipart/form-data)
     // ========================================
     @Operation(summary = "잘못된 정보 신고", description = "웹사이트의 잘못된 정보를 신고합니다. PDF/이미지 첨부 가능 (최대 10MB)")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            content = @Content(
+                    mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                    encoding = @Encoding(name = "data", contentType = MediaType.APPLICATION_JSON_VALUE)
+            )
+    )
     @PostMapping(value = "/info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ReportResponseDto> reportInfo(
             @Valid @RequestPart("data") InfoReportRequestDto dto,
@@ -63,8 +73,7 @@ public class ReportController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         Long reporterId = getUserId(userDetails);
-        ReportResponseDto response = reportService.reportInfo(dto, file, reporterId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(reportService.reportInfo(dto, file, reporterId));
     }
 
     // ========================================
@@ -78,8 +87,7 @@ public class ReportController {
             @RequestParam(required = false) ReportStatus status,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        Page<ReportResponseDto> response = reportService.getReports(type, status, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(reportService.getReports(type, status, pageable));
     }
 
     // ========================================
@@ -112,9 +120,8 @@ public class ReportController {
     // ========================================
     @Operation(summary = "신고 사유 목록", description = "게시글 신고 시 선택 가능한 사유 목록을 반환합니다.")
     @GetMapping("/reasons")
-    public ResponseEntity<?> getReasons() {
-        var reasons = java.util.Arrays.stream(
-                com.mygomi.backend.domain.report.ReportReason.values())
+    public ResponseEntity<List<Map<String, String>>> getReasons() {
+        List<Map<String, String>> reasons = Arrays.stream(ReportReason.values())
                 .map(r -> Map.of("code", r.name(), "label", r.getDescription()))
                 .toList();
         return ResponseEntity.ok(reasons);

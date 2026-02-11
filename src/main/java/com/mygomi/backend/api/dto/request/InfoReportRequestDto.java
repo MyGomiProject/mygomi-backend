@@ -15,6 +15,6 @@ public class InfoReportRequestDto {
     private String content;
 
     private boolean emailReply;     // 이메일 답변 수신 여부
-    private String reporterEmail;   // 이메일 답변 원할 때만 입력
+    private String reporterEmail;   // 답변 받을 이메일 (직접 입력)
     // 첨부파일은 multipart로 별도 처리
 }

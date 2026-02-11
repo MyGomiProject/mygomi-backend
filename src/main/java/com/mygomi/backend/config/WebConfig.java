@@ -9,12 +9,8 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 게시글 이미지
+        // 게시글 이미지 + 신고 첨부파일 모두 서빙 (C:/mygomi-uploads/ 하위 전체)
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:C:/mygomi-uploads/");
-
-        // 신고 첨부파일
-        registry.addResourceHandler("/uploads/reports/**")
-                .addResourceLocations("file:C:/mygomi-uploads/reports/");
     }
 }
