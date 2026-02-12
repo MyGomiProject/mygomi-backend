@@ -40,4 +40,14 @@ public class ItemController {
         // 2. 서비스 호출 (유저 ID 전달)
         return ResponseEntity.ok(itemService.searchItems(user.getId(), keyword));
     }
+
+    @Operation(summary = "비로그인 쓰레기 검색", description = "로그인 없이, 사용자가 선택한 지역(구)을 기준으로 쓰레기 배출 방법을 검색합니다.")
+    @GetMapping("/guest/search")
+    public ResponseEntity<List<ItemResponseDto>> searchGuest(
+            @RequestParam String ward,
+            @RequestParam String keyword
+    ) {
+        // 서비스 호출 (구, 키워드 직접 전달)
+        return ResponseEntity.ok(itemService.searchItemsByWard(ward, keyword));
+    }
 }
