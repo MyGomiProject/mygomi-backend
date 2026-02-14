@@ -182,9 +182,10 @@ public class SharePostService {
 
     /**
      * 반경 내 게시글 조회 (지도용)
+     * OPEN과 RESERVED 상태 게시물만 반환 (COMPLETED, DELETED 제외)
      */
     public Page<SharePostResponseDto> getNearbyPosts(Double lat, Double lng, Double radiusKm, String sortBy, Pageable pageable) {
-        // 1. 반경 내 데이터 1차 조회 (OPEN 상태인 것만)
+        // 1. 반경 내 데이터 1차 조회 (OPEN, RESERVED 상태만)
         List<SharePost> posts = sharePostRepository.findNearbyPosts(lat, lng, radiusKm);
 
         // 2. 정렬 처리 (거리순 vs 최신순)

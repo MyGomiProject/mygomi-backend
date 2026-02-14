@@ -31,6 +31,7 @@ public interface SharePostRepository extends JpaRepository<SharePost, Long> {
     /**
      * 반경 검색 (Haversine 공식 사용)
      * 지구 반지름: 6371km
+     * OPEN과 RESERVED 상태 게시물만 반환 (COMPLETED, DELETED 제외)
      * 
      * @param lat 중심 위도
      * @param lng 중심 경도
@@ -38,7 +39,7 @@ public interface SharePostRepository extends JpaRepository<SharePost, Long> {
      * @return 반경 내 게시글 목록
      */
     @Query(value = "SELECT * FROM share_posts WHERE " +
-           "status = 'OPEN' AND " +
+           "status IN ('OPEN', 'RESERVED') AND " +
            "(6371 * acos(cos(radians(:lat)) * cos(radians(lat)) * " +
            "cos(radians(lng) - radians(:lng)) + sin(radians(:lat)) * " +
            "sin(radians(lat)))) <= :radiusKm " +
@@ -52,9 +53,10 @@ public interface SharePostRepository extends JpaRepository<SharePost, Long> {
     
     /**
      * 반경 검색 + 카테고리 필터
+     * OPEN과 RESERVED 상태 게시물만 반환 (COMPLETED, DELETED 제외)
      */
     @Query(value = "SELECT * FROM share_posts WHERE " +
-           "status = 'OPEN' AND " +
+           "status IN ('OPEN', 'RESERVED') AND " +
            "category = :category AND " +
            "(6371 * acos(cos(radians(:lat)) * cos(radians(lat)) * " +
            "cos(radians(lng) - radians(:lng)) + sin(radians(:lat)) * " +
@@ -70,13 +72,14 @@ public interface SharePostRepository extends JpaRepository<SharePost, Long> {
     
     /**
      * 거리 계산과 함께 조회 (정렬용)
+     * OPEN과 RESERVED 상태 게시물만 반환 (COMPLETED, DELETED 제외)
      */
     @Query(value = "SELECT *, " +
            "(6371 * acos(cos(radians(:lat)) * cos(radians(lat)) * " +
            "cos(radians(lng) - radians(:lng)) + sin(radians(:lat)) * " +
            "sin(radians(lat)))) AS distance " +
            "FROM share_posts WHERE " +
-           "status = 'OPEN' AND " +
+           "status IN ('OPEN', 'RESERVED') AND " +
            "(6371 * acos(cos(radians(:lat)) * cos(radians(lat)) * " +
            "cos(radians(lng) - radians(:lng)) + sin(radians(:lat)) * " +
            "sin(radians(lat)))) <= :radiusKm " +
