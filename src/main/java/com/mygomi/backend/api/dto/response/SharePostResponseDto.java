@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 public class SharePostResponseDto {
     private Long id;
     private Long userId;
+    private String author;  // 작성자 닉네임
     private String title;
     private String description;
     
@@ -42,6 +43,10 @@ public class SharePostResponseDto {
     private Double distance;  // km 단위 (nearby API 전용)
 
     public static SharePostResponseDto from(SharePost post) {
+        return from(post, null);
+    }
+    
+    public static SharePostResponseDto from(SharePost post, String author) {
         List<String> imageUrls = post.getImages().stream()
                 .map(img -> img.getImageUrl())
                 .collect(Collectors.toList());
@@ -49,6 +54,7 @@ public class SharePostResponseDto {
         return SharePostResponseDto.builder()
                 .id(post.getId())
                 .userId(post.getUserId())
+                .author(author)
                 .title(post.getTitle())
                 .description(post.getDescription())
                 .viewCount(post.getViewCount())
@@ -69,10 +75,15 @@ public class SharePostResponseDto {
     }
     
     public static SharePostResponseDto fromWithDistance(SharePost post, Double distance) {
-        SharePostResponseDto dto = from(post);
+        return fromWithDistance(post, distance, null);
+    }
+    
+    public static SharePostResponseDto fromWithDistance(SharePost post, Double distance, String author) {
+        SharePostResponseDto dto = from(post, author);
         return SharePostResponseDto.builder()
                 .id(dto.getId())
                 .userId(dto.getUserId())
+                .author(dto.getAuthor())
                 .title(dto.getTitle())
                 .description(dto.getDescription())
                 .viewCount(dto.getViewCount())
