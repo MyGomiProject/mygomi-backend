@@ -2,10 +2,12 @@ package com.mygomi.backend.api.controller;
 
 import com.mygomi.backend.api.dto.response.CommonResponse;
 import com.mygomi.backend.api.dto.request.SharePostRequestDto;
+import com.mygomi.backend.api.dto.response.ReservationStatusResponseDto;
 import com.mygomi.backend.api.dto.response.SharePostResponseDto;
 import com.mygomi.backend.domain.share.ShareStatus;
 import com.mygomi.backend.domain.user.User;
 import com.mygomi.backend.repository.UserRepository;
+import com.mygomi.backend.service.SharePostReservationService;
 import com.mygomi.backend.service.SharePostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -37,6 +39,7 @@ import java.util.Map;
 public class SharePostController {
 
     private final SharePostService sharePostService;
+    private final SharePostReservationService sharePostReservationService;
     private final UserRepository userRepository;
     private final com.mygomi.backend.service.AddressService addressService; // [추가] 주소 서비스
 
@@ -173,6 +176,28 @@ public class SharePostController {
             pageable
         );
         
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    @Operation(summary = "예약 상태 조회", description = "해당 게시글·채팅방에 대한 예약 동의 상태를 반환합니다. roomId 필수 (채팅방 진입 시 보유).")
+    @GetMapping("/{postId}/reservation/status")
+    public ResponseEntity<CommonResponse<ReservationStatusResponseDto>> getReservationStatus(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long postId,
+            @RequestParam Long roomId) {
+        Long userId = getUserIdFromToken(userDetails);
+        ReservationStatusResponseDto response = sharePostReservationService.getStatus(postId, roomId, userId);
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    @Operation(summary = "예약 동의 하기", description = "현재 사용자가 예약 동의합니다. 두 명 모두 동의 시 게시글 상태가 RESERVED로 변경됩니다. roomId 필수.")
+    @PostMapping("/{postId}/reservation/agree")
+    public ResponseEntity<CommonResponse<ReservationStatusResponseDto>> agreeReservation(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long postId,
+            @RequestParam Long roomId) {
+        Long userId = getUserIdFromToken(userDetails);
+        ReservationStatusResponseDto response = sharePostReservationService.agree(postId, roomId, userId);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 

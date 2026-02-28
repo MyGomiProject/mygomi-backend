@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,29 +30,35 @@ public class ChatService {
     private final UserRepository userRepository;
 
     // 1. 채팅방 생성 (또는 이미 있으면 조회)
+    // 같은 게시글 + 같은 두 참여자면 항상 같은 roomId 반환 (구매자/판매자 구분 없이 참여자 기준 조회)
     @Transactional
-    public Long createChatRoom(Long sharePostId, String buyerEmail) {
+    public Long createChatRoom(Long sharePostId, String currentUserEmail) {
         SharePost sharePost = sharePostRepository.findById(sharePostId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
 
-        User buyer = userRepository.findByEmail(buyerEmail) // 닉네임 대신 이메일로 찾는 게 안전합니다
-                .orElseThrow(() -> new IllegalArgumentException("구매자를 찾을 수 없습니다."));
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // 판매자 찾기 (게시글의 userId로 조회)
         User seller = userRepository.findById(sharePost.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("판매자를 찾을 수 없습니다."));
 
-        // 이미 존재하는 방인지 확인
-        return chatRoomRepository.findBySharePostIdAndBuyerId(sharePostId, buyer.getId())
-                .map(ChatRoom::getId)
-                .orElseGet(() -> {
-                    ChatRoom chatRoom = ChatRoom.builder()
-                            .sharePost(sharePost)
-                            .buyer(buyer)
-                            .seller(seller)
-                            .build();
-                    return chatRoomRepository.save(chatRoom).getId();
-                });
+        // 이 게시글에 대해 현재 사용자가 참여한 방이 이미 있으면 그 방 ID 반환 (구매자이든 판매자이든 동일)
+        Optional<ChatRoom> existingRoom = chatRoomRepository.findBySharePostIdAndUserId(sharePostId, currentUser.getId());
+        if (existingRoom.isPresent()) {
+            return existingRoom.get().getId();
+        }
+
+        // 게시글 주인은 혼자 새 방을 만들 수 없음 (나눔 신청자가 먼저 채팅을 시작해야 함)
+        if (currentUser.getId().equals(seller.getId())) {
+            throw new IllegalArgumentException("게시글 작성자는 채팅방을 직접 생성할 수 없습니다. 나눔 신청자가 먼저 채팅을 시작하면 목록에서 입장할 수 있습니다.");
+        }
+
+        ChatRoom chatRoom = ChatRoom.builder()
+                .sharePost(sharePost)
+                .buyer(currentUser)
+                .seller(seller)
+                .build();
+        return chatRoomRepository.save(chatRoom).getId();
     }
 
     // 2. 메시지 저장
