@@ -12,8 +12,8 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     // 이미 존재하는 채팅방인지 확인 (게시글 ID와 구매자 ID로 조회)
     Optional<ChatRoom> findBySharePostIdAndBuyerId(Long sharePostId, Long buyerId);
 
-    // 내 채팅방 목록 조회 (내가 구매자이거나 판매자인 경우 모두 포함)
-    @Query("SELECT cr FROM ChatRoom cr WHERE cr.buyer.id = :userId OR cr.seller.id = :userId")
+    // 내 채팅방 목록 조회 (내가 구매자이거나 판매자인 경우 모두 포함, sharePost 포함해 N+1 방지)
+    @Query("SELECT cr FROM ChatRoom cr JOIN FETCH cr.buyer JOIN FETCH cr.seller JOIN FETCH cr.sharePost WHERE cr.buyer.id = :userId OR cr.seller.id = :userId")
     List<ChatRoom> findAllByUserId(@Param("userId") Long userId);
 
     // 해당 게시글에 대해 현재 사용자가 참여한 채팅방 (유일)
