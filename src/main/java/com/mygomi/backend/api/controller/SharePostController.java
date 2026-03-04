@@ -1,14 +1,22 @@
 package com.mygomi.backend.api.controller;
 
 import com.mygomi.backend.api.dto.request.SharePostRequestDto;
+<<<<<<< HEAD
 import com.mygomi.backend.api.dto.response.CommonResponse;
+=======
+import com.mygomi.backend.api.dto.response.ReservationStatusResponseDto;
+>>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
 import com.mygomi.backend.api.dto.response.SharePostResponseDto;
 import com.mygomi.backend.domain.address.UserAddress;
 import com.mygomi.backend.domain.share.ShareCategory;
 import com.mygomi.backend.domain.share.ShareStatus;
 import com.mygomi.backend.domain.user.User;
 import com.mygomi.backend.repository.UserRepository;
+<<<<<<< HEAD
 import com.mygomi.backend.service.AddressService;
+=======
+import com.mygomi.backend.service.SharePostReservationService;
+>>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
 import com.mygomi.backend.service.SharePostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -49,6 +57,7 @@ import java.util.Map;
 public class SharePostController {
 
     private final SharePostService sharePostService;
+    private final SharePostReservationService sharePostReservationService;
     private final UserRepository userRepository;
     private final AddressService addressService;
 
@@ -175,6 +184,32 @@ public class SharePostController {
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
+<<<<<<< HEAD
+=======
+    @Operation(summary = "예약 상태 조회", description = "해당 게시글·채팅방에 대한 예약 동의 상태를 반환합니다. roomId 필수 (채팅방 진입 시 보유).")
+    @GetMapping("/{postId}/reservation/status")
+    public ResponseEntity<CommonResponse<ReservationStatusResponseDto>> getReservationStatus(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long postId,
+            @RequestParam Long roomId) {
+        Long userId = getUserIdFromToken(userDetails);
+        ReservationStatusResponseDto response = sharePostReservationService.getStatus(postId, roomId, userId);
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    @Operation(summary = "예약 동의 하기", description = "현재 사용자가 예약 동의합니다. 두 명 모두 동의 시 게시글 상태가 RESERVED로 변경됩니다. roomId 필수.")
+    @PostMapping("/{postId}/reservation/agree")
+    public ResponseEntity<CommonResponse<ReservationStatusResponseDto>> agreeReservation(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long postId,
+            @RequestParam Long roomId) {
+        Long userId = getUserIdFromToken(userDetails);
+        ReservationStatusResponseDto response = sharePostReservationService.agree(postId, roomId, userId);
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    // 🕵️‍♂️ 편의 메서드: 토큰 정보(UserDetails)로 실제 유저 ID 찾기
+>>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
     private Long getUserIdFromToken(UserDetails userDetails) {
         if (userDetails == null) {
             throw new UsernameNotFoundException("Login information is missing.");

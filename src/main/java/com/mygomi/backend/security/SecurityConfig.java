@@ -52,6 +52,8 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
+        // 이미지 파일에 대한 CORS 설정 추가
+        source.registerCorsConfiguration("/uploads/**", configuration);
         return source;
     }
 

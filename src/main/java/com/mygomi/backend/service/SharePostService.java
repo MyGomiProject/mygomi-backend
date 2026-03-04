@@ -9,9 +9,14 @@ import com.mygomi.backend.domain.share.ShareCategory;
 import com.mygomi.backend.domain.share.SharePost;
 import com.mygomi.backend.domain.share.SharePostImage;
 import com.mygomi.backend.domain.share.ShareStatus;
+<<<<<<< HEAD
 import com.mygomi.backend.repository.ReportRepository;
+=======
+import com.mygomi.backend.domain.user.User;
+>>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
 import com.mygomi.backend.repository.SharePostImageRepository;
 import com.mygomi.backend.repository.SharePostRepository;
+import com.mygomi.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -37,8 +43,13 @@ public class SharePostService {
 
     private final SharePostRepository sharePostRepository;
     private final SharePostImageRepository sharePostImageRepository;
+<<<<<<< HEAD
     private final ReportRepository reportRepository;
     private final AddressService addressService;
+=======
+    private final AddressService addressService; // [추가] 주소 서비스
+    private final UserRepository userRepository; // 작성자 닉네임 조회용
+>>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
 
     private static final List<ReportStatus> PENDING_REPORT_STATUSES = List.of(
             ReportStatus.PENDING,
@@ -74,14 +85,27 @@ public class SharePostService {
             uploadAndSaveImages(savedPost, images);
         }
 
+<<<<<<< HEAD
         return toResponse(savedPost);
+=======
+        // 5. 작성자 닉네임 조회
+        String author = getAuthorNickname(savedPost.getUserId());
+        return SharePostResponseDto.from(savedPost, author);
+>>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
     }
 
     @Transactional
     public SharePostResponseDto getPost(Long postId) {
         SharePost post = findVisiblePostById(postId);
         post.incrementViewCount();
+<<<<<<< HEAD
         return toResponse(post);
+=======
+
+        // 작성자 닉네임 조회
+        String author = getAuthorNickname(post.getUserId());
+        return SharePostResponseDto.from(post, author);
+>>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
     }
 
     public Page<SharePostResponseDto> getPosts(String ward, ShareCategory category, ShareStatus status, Pageable pageable) {
@@ -97,12 +121,38 @@ public class SharePostService {
             posts = sharePostRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
         }
 
+<<<<<<< HEAD
         return mapPageWithReportInfo(posts, pageable);
     }
 
     public List<SharePostResponseDto> getMyPosts(Long userId) {
         List<SharePost> posts = sharePostRepository.findByUserIdAndStatusNot(userId, ShareStatus.DELETED);
         return mapListWithReportInfo(posts);
+=======
+        // 작성자 닉네임 조회 (배치 조회로 성능 최적화)
+        Map<Long, String> authorMap = getAuthorNicknameMap(posts.getContent());
+        
+        return posts.map(post -> {
+            String author = authorMap.getOrDefault(post.getUserId(), "알 수 없음");
+            return SharePostResponseDto.from(post, author);
+        });
+    }
+    /**
+     * 내 게시글 조회
+     */
+    public List<SharePostResponseDto> getMyPosts(Long userId) {
+        List<SharePost> posts = sharePostRepository.findByUserId(userId);
+        
+        // 작성자 닉네임 조회 (배치 조회로 성능 최적화)
+        Map<Long, String> authorMap = getAuthorNicknameMap(posts);
+        
+        return posts.stream()
+                .map(post -> {
+                    String author = authorMap.getOrDefault(post.getUserId(), "알 수 없음");
+                    return SharePostResponseDto.from(post, author);
+                })
+                .collect(Collectors.toList());
+>>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
     }
 
     @Transactional
@@ -110,7 +160,14 @@ public class SharePostService {
         SharePost post = findPostById(postId);
         validateOwner(post, userId);
         post.update(request.getTitle(), request.getDescription(), request.getCategory());
+<<<<<<< HEAD
         return toResponse(post);
+=======
+
+        // 작성자 닉네임 조회
+        String author = getAuthorNickname(post.getUserId());
+        return SharePostResponseDto.from(post, author);
+>>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
     }
 
     @Transactional
@@ -118,7 +175,14 @@ public class SharePostService {
         SharePost post = findPostById(postId);
         validateOwner(post, userId);
         post.updateStatus(status);
+<<<<<<< HEAD
         return toResponse(post);
+=======
+
+        // 작성자 닉네임 조회
+        String author = getAuthorNickname(post.getUserId());
+        return SharePostResponseDto.from(post, author);
+>>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
     }
 
     @Transactional
@@ -128,7 +192,16 @@ public class SharePostService {
         post.softDelete();
     }
 
+<<<<<<< HEAD
     public Page<SharePostResponseDto> getNearbyPosts(Double lat, Double lng, Double radiusKm, String sortBy, Pageable pageable) {
+=======
+    /**
+     * 반경 내 게시글 조회 (지도용)
+     * OPEN과 RESERVED 상태 게시물만 반환 (COMPLETED, DELETED 제외)
+     */
+    public Page<SharePostResponseDto> getNearbyPosts(Double lat, Double lng, Double radiusKm, String sortBy, Pageable pageable) {
+        // 1. 반경 내 데이터 1차 조회 (OPEN, RESERVED 상태만)
+>>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
         List<SharePost> posts = sharePostRepository.findNearbyPosts(lat, lng, radiusKm);
 
         if ("distance".equalsIgnoreCase(sortBy)) {
@@ -144,6 +217,7 @@ public class SharePostService {
 
         List<SharePost> pagedPosts = posts.subList(start, end);
 
+<<<<<<< HEAD
         Map<Long, Long> pendingCounts = getPendingReportCountMap(
                 pagedPosts.stream().map(SharePost::getId).toList()
         );
@@ -153,6 +227,17 @@ public class SharePostService {
                     double distance = calculateDistance(lat, lng, post.getLat(), post.getLng());
                     long pendingCount = pendingCounts.getOrDefault(post.getId(), 0L);
                     return SharePostResponseDto.fromWithDistance(post, distance, pendingCount);
+=======
+        // 4. 작성자 닉네임 조회 (배치 조회로 성능 최적화)
+        Map<Long, String> authorMap = getAuthorNicknameMap(pagedPosts);
+        
+        // 5. DTO 변환 (거리 포함)
+        List<SharePostResponseDto> dtos = pagedPosts.stream()
+                .map(post -> {
+                    double distance = calculateDistance(lat, lng, post.getLat(), post.getLng());
+                    String author = authorMap.getOrDefault(post.getUserId(), "알 수 없음");
+                    return SharePostResponseDto.fromWithDistance(post, distance, author);
+>>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
                 })
                 .collect(Collectors.toList());
 
@@ -278,4 +363,30 @@ public class SharePostService {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return r * c;
     }
+<<<<<<< HEAD
 }
+=======
+    
+    /**
+     * 작성자 닉네임 조회 (단건)
+     */
+    private String getAuthorNickname(Long userId) {
+        return userRepository.findById(userId)
+                .map(User::getNickname)
+                .orElse("알 수 없음");
+    }
+    
+    /**
+     * 작성자 닉네임 조회 (배치 - 성능 최적화)
+     */
+    private Map<Long, String> getAuthorNicknameMap(List<SharePost> posts) {
+        List<Long> userIds = posts.stream()
+                .map(SharePost::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+        
+        return userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, User::getNickname));
+    }
+}
+>>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4

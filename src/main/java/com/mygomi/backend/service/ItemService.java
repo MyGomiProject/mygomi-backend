@@ -38,4 +38,23 @@ public class ItemService {
                 .map(ItemResponseDto::new)
                 .toList();
     }
+
+    /**
+     * 비로그인(게스트)용 검색: 사용자가 선택한 구(ward)를 기준으로 검색
+     */
+    @Transactional(readOnly = true)
+    public List<ItemResponseDto> searchItemsByWard(String ward, String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return List.of();
+        }
+
+        // 검색어 전처리: 공백 제거
+        String cleanedKeyword = keyword.replaceAll("\\s+", "");
+
+        // 주소 조회 없이 바로 해당 구(ward)로 검색 실행
+        return itemRepository.searchByKeywordAndWard(cleanedKeyword, ward)
+                .stream()
+                .map(ItemResponseDto::new)
+                .toList();
+    }
 }
