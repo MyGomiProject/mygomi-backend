@@ -1,22 +1,16 @@
 package com.mygomi.backend.api.controller;
 
 import com.mygomi.backend.api.dto.request.SharePostRequestDto;
-<<<<<<< HEAD
 import com.mygomi.backend.api.dto.response.CommonResponse;
-=======
 import com.mygomi.backend.api.dto.response.ReservationStatusResponseDto;
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
 import com.mygomi.backend.api.dto.response.SharePostResponseDto;
 import com.mygomi.backend.domain.address.UserAddress;
 import com.mygomi.backend.domain.share.ShareCategory;
 import com.mygomi.backend.domain.share.ShareStatus;
 import com.mygomi.backend.domain.user.User;
 import com.mygomi.backend.repository.UserRepository;
-<<<<<<< HEAD
 import com.mygomi.backend.service.AddressService;
-=======
 import com.mygomi.backend.service.SharePostReservationService;
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
 import com.mygomi.backend.service.SharePostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -123,6 +117,27 @@ public class SharePostController {
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
+    @Operation(summary = "Update post with image changes", description = "Updates post fields and supports image replace/delete/add in one request.")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            content = @Content(
+                    mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                    encoding = @Encoding(name = "request", contentType = MediaType.APPLICATION_JSON_VALUE)
+            )
+    )
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CommonResponse<SharePostResponseDto>> updatePostWithImages(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long id,
+            @RequestPart("request") @Valid SharePostRequestDto request,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestParam(value = "deleteImageIds", required = false) List<Long> deleteImageIds,
+            @RequestParam(value = "replaceImages", defaultValue = "false") boolean replaceImages) {
+
+        Long userId = getUserIdFromToken(userDetails);
+        SharePostResponseDto response = sharePostService.updatePost(userId, id, request, images, deleteImageIds, replaceImages);
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
     @Operation(summary = "Delete post", description = "Soft-deletes a share post. Only the owner can delete.")
     @DeleteMapping("/{id}")
     public ResponseEntity<CommonResponse<String>> deletePost(
@@ -184,9 +199,7 @@ public class SharePostController {
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-<<<<<<< HEAD
-=======
-    @Operation(summary = "예약 상태 조회", description = "해당 게시글·채팅방에 대한 예약 동의 상태를 반환합니다. roomId 필수 (채팅방 진입 시 보유).")
+    @Operation(summary = "예약 상태 조회", description = "해당 게시글/채팅방 기준 예약 동의 상태를 반환합니다.")
     @GetMapping("/{postId}/reservation/status")
     public ResponseEntity<CommonResponse<ReservationStatusResponseDto>> getReservationStatus(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -197,7 +210,7 @@ public class SharePostController {
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-    @Operation(summary = "예약 동의 하기", description = "현재 사용자가 예약 동의합니다. 두 명 모두 동의 시 게시글 상태가 RESERVED로 변경됩니다. roomId 필수.")
+    @Operation(summary = "예약 동의", description = "현재 사용자가 예약 동의하고, 양측 동의 시 게시글 상태를 RESERVED로 변경합니다.")
     @PostMapping("/{postId}/reservation/agree")
     public ResponseEntity<CommonResponse<ReservationStatusResponseDto>> agreeReservation(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -208,8 +221,6 @@ public class SharePostController {
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-    // 🕵️‍♂️ 편의 메서드: 토큰 정보(UserDetails)로 실제 유저 ID 찾기
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
     private Long getUserIdFromToken(UserDetails userDetails) {
         if (userDetails == null) {
             throw new UsernameNotFoundException("Login information is missing.");

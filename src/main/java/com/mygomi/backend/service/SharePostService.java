@@ -9,11 +9,8 @@ import com.mygomi.backend.domain.share.ShareCategory;
 import com.mygomi.backend.domain.share.SharePost;
 import com.mygomi.backend.domain.share.SharePostImage;
 import com.mygomi.backend.domain.share.ShareStatus;
-<<<<<<< HEAD
-import com.mygomi.backend.repository.ReportRepository;
-=======
 import com.mygomi.backend.domain.user.User;
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
+import com.mygomi.backend.repository.ReportRepository;
 import com.mygomi.backend.repository.SharePostImageRepository;
 import com.mygomi.backend.repository.SharePostRepository;
 import com.mygomi.backend.repository.UserRepository;
@@ -26,13 +23,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -43,18 +43,15 @@ public class SharePostService {
 
     private final SharePostRepository sharePostRepository;
     private final SharePostImageRepository sharePostImageRepository;
-<<<<<<< HEAD
     private final ReportRepository reportRepository;
     private final AddressService addressService;
-=======
-    private final AddressService addressService; // [추가] 주소 서비스
-    private final UserRepository userRepository; // 작성자 닉네임 조회용
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
+    private final UserRepository userRepository;
 
     private static final List<ReportStatus> PENDING_REPORT_STATUSES = List.of(
             ReportStatus.PENDING,
             ReportStatus.IN_REVIEW
     );
+    private static final int MAX_IMAGE_COUNT = 5;
 
     @Transactional
     public SharePostResponseDto createPost(Long userId, SharePostRequestDto request, List<MultipartFile> images) {
@@ -82,30 +79,19 @@ public class SharePostService {
         SharePost savedPost = sharePostRepository.save(post);
 
         if (images != null && !images.isEmpty()) {
-            uploadAndSaveImages(savedPost, images);
+            List<MultipartFile> validImages = filterValidImages(images);
+            validateImageCount(0, validImages.size());
+            uploadAndSaveImages(savedPost, validImages, 0);
         }
 
-<<<<<<< HEAD
         return toResponse(savedPost);
-=======
-        // 5. 작성자 닉네임 조회
-        String author = getAuthorNickname(savedPost.getUserId());
-        return SharePostResponseDto.from(savedPost, author);
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
     }
 
     @Transactional
     public SharePostResponseDto getPost(Long postId) {
         SharePost post = findVisiblePostById(postId);
         post.incrementViewCount();
-<<<<<<< HEAD
         return toResponse(post);
-=======
-
-        // 작성자 닉네임 조회
-        String author = getAuthorNickname(post.getUserId());
-        return SharePostResponseDto.from(post, author);
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
     }
 
     public Page<SharePostResponseDto> getPosts(String ward, ShareCategory category, ShareStatus status, Pageable pageable) {
@@ -121,53 +107,35 @@ public class SharePostService {
             posts = sharePostRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
         }
 
-<<<<<<< HEAD
-        return mapPageWithReportInfo(posts, pageable);
+        return mapPageWithPostMeta(posts, pageable);
     }
 
     public List<SharePostResponseDto> getMyPosts(Long userId) {
         List<SharePost> posts = sharePostRepository.findByUserIdAndStatusNot(userId, ShareStatus.DELETED);
-        return mapListWithReportInfo(posts);
-=======
-        // 작성자 닉네임 조회 (배치 조회로 성능 최적화)
-        Map<Long, String> authorMap = getAuthorNicknameMap(posts.getContent());
-        
-        return posts.map(post -> {
-            String author = authorMap.getOrDefault(post.getUserId(), "알 수 없음");
-            return SharePostResponseDto.from(post, author);
-        });
-    }
-    /**
-     * 내 게시글 조회
-     */
-    public List<SharePostResponseDto> getMyPosts(Long userId) {
-        List<SharePost> posts = sharePostRepository.findByUserId(userId);
-        
-        // 작성자 닉네임 조회 (배치 조회로 성능 최적화)
-        Map<Long, String> authorMap = getAuthorNicknameMap(posts);
-        
-        return posts.stream()
-                .map(post -> {
-                    String author = authorMap.getOrDefault(post.getUserId(), "알 수 없음");
-                    return SharePostResponseDto.from(post, author);
-                })
-                .collect(Collectors.toList());
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
+        return mapListWithPostMeta(posts);
     }
 
     @Transactional
     public SharePostResponseDto updatePost(Long userId, Long postId, SharePostRequestDto request) {
+        return updatePost(userId, postId, request, null, null, false);
+    }
+
+    @Transactional
+    public SharePostResponseDto updatePost(
+            Long userId,
+            Long postId,
+            SharePostRequestDto request,
+            List<MultipartFile> newImages,
+            List<Long> deleteImageIds,
+            boolean replaceImages
+    ) {
         SharePost post = findPostById(postId);
         validateOwner(post, userId);
         post.update(request.getTitle(), request.getDescription(), request.getCategory());
-<<<<<<< HEAD
-        return toResponse(post);
-=======
 
-        // 작성자 닉네임 조회
-        String author = getAuthorNickname(post.getUserId());
-        return SharePostResponseDto.from(post, author);
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
+        applyImageChanges(post, newImages, deleteImageIds, replaceImages);
+
+        return toResponse(post);
     }
 
     @Transactional
@@ -175,14 +143,7 @@ public class SharePostService {
         SharePost post = findPostById(postId);
         validateOwner(post, userId);
         post.updateStatus(status);
-<<<<<<< HEAD
         return toResponse(post);
-=======
-
-        // 작성자 닉네임 조회
-        String author = getAuthorNickname(post.getUserId());
-        return SharePostResponseDto.from(post, author);
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
     }
 
     @Transactional
@@ -192,16 +153,7 @@ public class SharePostService {
         post.softDelete();
     }
 
-<<<<<<< HEAD
     public Page<SharePostResponseDto> getNearbyPosts(Double lat, Double lng, Double radiusKm, String sortBy, Pageable pageable) {
-=======
-    /**
-     * 반경 내 게시글 조회 (지도용)
-     * OPEN과 RESERVED 상태 게시물만 반환 (COMPLETED, DELETED 제외)
-     */
-    public Page<SharePostResponseDto> getNearbyPosts(Double lat, Double lng, Double radiusKm, String sortBy, Pageable pageable) {
-        // 1. 반경 내 데이터 1차 조회 (OPEN, RESERVED 상태만)
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
         List<SharePost> posts = sharePostRepository.findNearbyPosts(lat, lng, radiusKm);
 
         if ("distance".equalsIgnoreCase(sortBy)) {
@@ -217,27 +169,17 @@ public class SharePostService {
 
         List<SharePost> pagedPosts = posts.subList(start, end);
 
-<<<<<<< HEAD
         Map<Long, Long> pendingCounts = getPendingReportCountMap(
                 pagedPosts.stream().map(SharePost::getId).toList()
         );
+        Map<Long, String> authorMap = getAuthorNicknameMap(pagedPosts);
 
         List<SharePostResponseDto> dtos = pagedPosts.stream()
                 .map(post -> {
                     double distance = calculateDistance(lat, lng, post.getLat(), post.getLng());
                     long pendingCount = pendingCounts.getOrDefault(post.getId(), 0L);
-                    return SharePostResponseDto.fromWithDistance(post, distance, pendingCount);
-=======
-        // 4. 작성자 닉네임 조회 (배치 조회로 성능 최적화)
-        Map<Long, String> authorMap = getAuthorNicknameMap(pagedPosts);
-        
-        // 5. DTO 변환 (거리 포함)
-        List<SharePostResponseDto> dtos = pagedPosts.stream()
-                .map(post -> {
-                    double distance = calculateDistance(lat, lng, post.getLat(), post.getLng());
-                    String author = authorMap.getOrDefault(post.getUserId(), "알 수 없음");
-                    return SharePostResponseDto.fromWithDistance(post, distance, author);
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
+                    String author = authorMap.get(post.getUserId());
+                    return SharePostResponseDto.fromWithDistance(post, distance, author, pendingCount);
                 })
                 .collect(Collectors.toList());
 
@@ -250,28 +192,39 @@ public class SharePostService {
                 ReportType.SHARE_POST,
                 PENDING_REPORT_STATUSES
         );
-        return SharePostResponseDto.from(post, pendingCount);
+        String author = getAuthorNickname(post.getUserId());
+        return SharePostResponseDto.from(post, author, pendingCount);
     }
 
-    private Page<SharePostResponseDto> mapPageWithReportInfo(Page<SharePost> posts, Pageable pageable) {
+    private Page<SharePostResponseDto> mapPageWithPostMeta(Page<SharePost> posts, Pageable pageable) {
         Map<Long, Long> pendingCounts = getPendingReportCountMap(
                 posts.getContent().stream().map(SharePost::getId).toList()
         );
+        Map<Long, String> authorMap = getAuthorNicknameMap(posts.getContent());
 
         List<SharePostResponseDto> dtos = posts.getContent().stream()
-                .map(post -> SharePostResponseDto.from(post, pendingCounts.getOrDefault(post.getId(), 0L)))
+                .map(post -> SharePostResponseDto.from(
+                        post,
+                        authorMap.get(post.getUserId()),
+                        pendingCounts.getOrDefault(post.getId(), 0L)
+                ))
                 .toList();
 
         return new PageImpl<>(dtos, pageable, posts.getTotalElements());
     }
 
-    private List<SharePostResponseDto> mapListWithReportInfo(List<SharePost> posts) {
+    private List<SharePostResponseDto> mapListWithPostMeta(List<SharePost> posts) {
         Map<Long, Long> pendingCounts = getPendingReportCountMap(
                 posts.stream().map(SharePost::getId).toList()
         );
+        Map<Long, String> authorMap = getAuthorNicknameMap(posts);
 
         return posts.stream()
-                .map(post -> SharePostResponseDto.from(post, pendingCounts.getOrDefault(post.getId(), 0L)))
+                .map(post -> SharePostResponseDto.from(
+                        post,
+                        authorMap.get(post.getUserId()),
+                        pendingCounts.getOrDefault(post.getId(), 0L)
+                ))
                 .toList();
     }
 
@@ -295,6 +248,22 @@ public class SharePostService {
         return countMap;
     }
 
+    private String getAuthorNickname(Long userId) {
+        return userRepository.findById(userId)
+                .map(User::getNickname)
+                .orElse(null);
+    }
+
+    private Map<Long, String> getAuthorNicknameMap(List<SharePost> posts) {
+        List<Long> userIds = posts.stream()
+                .map(SharePost::getUserId)
+                .distinct()
+                .toList();
+
+        return userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, User::getNickname));
+    }
+
     private SharePost findPostById(Long id) {
         return sharePostRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Post not found. id=" + id));
@@ -311,24 +280,95 @@ public class SharePostService {
         }
     }
 
-    private void uploadAndSaveImages(SharePost post, List<MultipartFile> images) {
+    private void applyImageChanges(
+            SharePost post,
+            List<MultipartFile> newImages,
+            List<Long> deleteImageIds,
+            boolean replaceImages
+    ) {
+        List<MultipartFile> validNewImages = filterValidImages(newImages);
+        List<Long> targetDeleteIds = deleteImageIds == null ? List.of() : deleteImageIds;
+
+        int currentCount = post.getImages().size();
+        int deleteCount;
+
+        if (replaceImages) {
+            deleteCount = currentCount;
+            validateImageCount(0, validNewImages.size());
+            removeImages(post, List.copyOf(post.getImages()));
+            uploadAndSaveImages(post, validNewImages, 0);
+            normalizeImageOrder(post);
+            return;
+        }
+
+        if (!targetDeleteIds.isEmpty()) {
+            List<SharePostImage> deleteTargets = sharePostImageRepository.findByIdInAndSharePostId(targetDeleteIds, post.getId());
+            if (deleteTargets.size() != targetDeleteIds.size()) {
+                throw new IllegalArgumentException("Some image ids do not belong to this post.");
+            }
+            deleteCount = deleteTargets.size();
+            validateImageCount(currentCount - deleteCount, validNewImages.size());
+            removeImages(post, deleteTargets);
+        } else {
+            validateImageCount(currentCount, validNewImages.size());
+        }
+
+        if (!validNewImages.isEmpty()) {
+            int startOrder = post.getImages().stream()
+                    .map(SharePostImage::getDisplayOrder)
+                    .max(Integer::compareTo)
+                    .map(maxOrder -> maxOrder + 1)
+                    .orElse(0);
+            uploadAndSaveImages(post, validNewImages, startOrder);
+        }
+
+        normalizeImageOrder(post);
+    }
+
+    private List<MultipartFile> filterValidImages(List<MultipartFile> images) {
+        if (images == null || images.isEmpty()) {
+            return List.of();
+        }
+        return images.stream()
+                .filter(file -> file != null && !file.isEmpty())
+                .toList();
+    }
+
+    private void validateImageCount(int baseCount, int addCount) {
+        if (baseCount + addCount > MAX_IMAGE_COUNT) {
+            throw new IllegalArgumentException("A post can have up to 5 images.");
+        }
+    }
+
+    private void removeImages(SharePost post, List<SharePostImage> deleteTargets) {
+        for (SharePostImage image : deleteTargets) {
+            deleteImageFile(image.getImageUrl());
+        }
+        post.getImages().removeIf(image ->
+                deleteTargets.stream().anyMatch(target -> target.getId().equals(image.getId()))
+        );
+    }
+
+    private void normalizeImageOrder(SharePost post) {
+        for (int i = 0; i < post.getImages().size(); i++) {
+            post.getImages().get(i).updateOrder(i);
+        }
+    }
+
+    private void uploadAndSaveImages(SharePost post, List<MultipartFile> images, int startOrder) {
         String uploadFolder = System.getProperty("user.dir") + "/uploads/";
 
-        java.io.File folder = new java.io.File(uploadFolder);
+        File folder = new File(uploadFolder);
         if (!folder.exists()) {
             folder.mkdirs();
         }
 
-        int order = 0;
+        int order = startOrder;
         for (MultipartFile file : images) {
-            if (file.isEmpty()) {
-                continue;
-            }
-
             String originalFileName = file.getOriginalFilename();
             String uuid = UUID.randomUUID().toString();
             String savedFileName = uuid + "_" + originalFileName;
-            java.io.File destination = new java.io.File(uploadFolder + savedFileName);
+            File destination = new File(uploadFolder + savedFileName);
 
             try {
                 file.transferTo(destination);
@@ -344,6 +384,26 @@ public class SharePostService {
             } catch (IOException e) {
                 throw new RuntimeException("Image upload failed: " + originalFileName, e);
             }
+        }
+    }
+
+    private void deleteImageFile(String imageUrl) {
+        if (imageUrl == null || !imageUrl.startsWith("/uploads/")) {
+            return;
+        }
+        Path uploadRoot = Paths.get(System.getProperty("user.dir"), "uploads").normalize();
+        Path target = Paths.get(System.getProperty("user.dir"))
+                .resolve(imageUrl.substring(1))
+                .normalize();
+
+        if (!target.startsWith(uploadRoot)) {
+            return;
+        }
+
+        try {
+            Files.deleteIfExists(target);
+        } catch (IOException e) {
+            log.warn("Failed to delete image file. path={}, message={}", target, e.getMessage());
         }
     }
 
@@ -363,30 +423,4 @@ public class SharePostService {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return r * c;
     }
-<<<<<<< HEAD
 }
-=======
-    
-    /**
-     * 작성자 닉네임 조회 (단건)
-     */
-    private String getAuthorNickname(Long userId) {
-        return userRepository.findById(userId)
-                .map(User::getNickname)
-                .orElse("알 수 없음");
-    }
-    
-    /**
-     * 작성자 닉네임 조회 (배치 - 성능 최적화)
-     */
-    private Map<Long, String> getAuthorNicknameMap(List<SharePost> posts) {
-        List<Long> userIds = posts.stream()
-                .map(SharePost::getUserId)
-                .distinct()
-                .collect(Collectors.toList());
-        
-        return userRepository.findAllById(userIds).stream()
-                .collect(Collectors.toMap(User::getId, User::getNickname));
-    }
-}
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4

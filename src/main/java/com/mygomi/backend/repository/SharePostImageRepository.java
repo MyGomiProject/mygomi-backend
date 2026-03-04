@@ -7,6 +7,8 @@ import java.util.List;
 
 public interface SharePostImageRepository extends JpaRepository<SharePostImage, Long> {
     List<SharePostImage> findBySharePostIdOrderByDisplayOrderAsc(Long sharePostId);
-    
+
+    List<SharePostImage> findByIdInAndSharePostId(List<Long> ids, Long sharePostId);
+
     void deleteBySharePostId(Long sharePostId);
 }
