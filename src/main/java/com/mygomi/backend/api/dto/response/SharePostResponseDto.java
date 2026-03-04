@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class SharePostResponseDto {
     private Long id;
     private Long userId;
-    private String author;  // 작성자 닉네임
+    private String author;  // Author nickname
     private String title;
     private String description;
 
@@ -45,17 +45,10 @@ public class SharePostResponseDto {
     private int pendingReportCount;
 
     public static SharePostResponseDto from(SharePost post) {
-<<<<<<< HEAD
-        return from(post, 0L);
+        return from(post, null, 0L);
     }
 
-    public static SharePostResponseDto from(SharePost post, long pendingReportCount) {
-=======
-        return from(post, null);
-    }
-    
-    public static SharePostResponseDto from(SharePost post, String author) {
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
+    public static SharePostResponseDto from(SharePost post, String author, long pendingReportCount) {
         List<String> imageUrls = post.getImages().stream()
                 .map(img -> img.getImageUrl())
                 .collect(Collectors.toList());
@@ -86,19 +79,16 @@ public class SharePostResponseDto {
     }
 
     public static SharePostResponseDto fromWithDistance(SharePost post, Double distance) {
-<<<<<<< HEAD
-        return fromWithDistance(post, distance, 0L);
+        return fromWithDistance(post, distance, null, 0L);
     }
 
-    public static SharePostResponseDto fromWithDistance(SharePost post, Double distance, long pendingReportCount) {
-        SharePostResponseDto dto = from(post, pendingReportCount);
-=======
-        return fromWithDistance(post, distance, null);
-    }
-    
-    public static SharePostResponseDto fromWithDistance(SharePost post, Double distance, String author) {
-        SharePostResponseDto dto = from(post, author);
->>>>>>> f66f16c56fb2959d9d5fa9c657da3ebcad2222e4
+    public static SharePostResponseDto fromWithDistance(
+            SharePost post,
+            Double distance,
+            String author,
+            long pendingReportCount
+    ) {
+        SharePostResponseDto dto = from(post, author, pendingReportCount);
         return SharePostResponseDto.builder()
                 .id(dto.getId())
                 .userId(dto.getUserId())
