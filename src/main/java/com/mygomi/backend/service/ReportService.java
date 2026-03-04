@@ -134,6 +134,14 @@ public class ReportService {
                 .orElseThrow(() -> new IllegalArgumentException("Report does not exist."));
 
         report.updateStatus(status, adminNote);
+        // 신고를 'RESOLVED'로 변경하고, 그것이 '나눔 게시글' 신고일 경우
+        if (status == ReportStatus.RESOLVED && report.getType() == ReportType.SHARE_POST) {
+            SharePost targetPost = report.getTargetPost();
+            if (targetPost != null) {
+                targetPost.softDelete(); // 원본 게시글을  DELETED 상태로 변경
+            }
+
+        }
 
         log.info("[Report handled] reportId={}, status={}", reportId, status);
 
