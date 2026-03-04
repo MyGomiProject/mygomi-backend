@@ -15,7 +15,6 @@ import io.swagger.v3.oas.annotations.media.Encoding;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -36,7 +35,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/reports")
 @RequiredArgsConstructor
-@Slf4j
 public class ReportController {
 
     private final ReportService reportService;
@@ -93,8 +91,6 @@ public class ReportController {
             @RequestParam ReportStatus status,
             @RequestParam(required = false) String adminNote) {
 
-        log.info("[Admin report status API] reportId={}, status={}, hasAdminNote={}",
-                reportId, status, adminNote != null && !adminNote.isBlank());
         return ResponseEntity.ok(reportService.updateReportStatus(reportId, status, adminNote));
     }
 
@@ -104,8 +100,6 @@ public class ReportController {
             @PathVariable Long postId,
             @RequestParam(required = false) String adminNote) {
 
-        log.info("[Admin dismiss API] postId={}, hasAdminNote={}",
-                postId, adminNote != null && !adminNote.isBlank());
         int updatedCount = reportService.dismissSharePostReports(postId, adminNote);
         return ResponseEntity.ok(Map.of("postId", postId, "updatedCount", updatedCount));
     }
@@ -116,8 +110,6 @@ public class ReportController {
             @PathVariable Long postId,
             @RequestParam(required = false) String adminNote) {
 
-        log.info("[Admin delete API] postId={}, hasAdminNote={}",
-                postId, adminNote != null && !adminNote.isBlank());
         int updatedCount = reportService.deleteSharePostAndResolveReports(postId, adminNote);
         return ResponseEntity.ok(Map.of("postId", postId, "updatedCount", updatedCount));
     }

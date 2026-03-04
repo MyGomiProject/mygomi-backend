@@ -7,7 +7,6 @@ import com.mygomi.backend.domain.report.Report;
 import com.mygomi.backend.domain.report.ReportStatus;
 import com.mygomi.backend.domain.report.ReportType;
 import com.mygomi.backend.domain.share.SharePost;
-import com.mygomi.backend.domain.share.ShareStatus;
 import com.mygomi.backend.domain.user.User;
 import com.mygomi.backend.repository.ReportRepository;
 import com.mygomi.backend.repository.SharePostRepository;
@@ -134,30 +133,7 @@ public class ReportService {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new IllegalArgumentException("Report does not exist."));
 
-        Long targetPostId = report.getTargetPost() != null ? report.getTargetPost().getId() : null;
-        log.info("[Report status update request] reportId={}, type={}, nextStatus={}, targetPostId={}",
-                reportId, report.getType(), status, targetPostId);
-
         report.updateStatus(status, adminNote);
-
-        if (report.getType() == ReportType.SHARE_POST
-                && status == ReportStatus.RESOLVED
-                && report.getTargetPost() != null) {
-            SharePost targetPost = report.getTargetPost();
-            if (targetPost.getStatus() != ShareStatus.DELETED) {
-                targetPost.softDelete();
-            }
-
-            int resolvedCount = reportRepository.bulkUpdateSharePostReportStatus(
-                    targetPost.getId(),
-                    ReportType.SHARE_POST,
-                    PENDING_REPORT_STATUSES,
-                    ReportStatus.RESOLVED,
-                    adminNote
-            );
-            log.info("[Report resolved with post delete] reportId={}, postId={}, bulkResolvedCount={}",
-                    reportId, targetPost.getId(), resolvedCount);
-        }
 
         log.info("[Report handled] reportId={}, status={}", reportId, status);
 
