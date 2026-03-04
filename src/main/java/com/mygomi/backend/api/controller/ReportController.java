@@ -31,7 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-@Tag(name = "Report", description = "신고 API")
+@Tag(name = "Report", description = "Report API")
 @RestController
 @RequestMapping("/api/reports")
 @RequiredArgsConstructor
@@ -40,11 +40,7 @@ public class ReportController {
     private final ReportService reportService;
     private final UserRepository userRepository;
 
-    // ========================================
-    // 게시글 신고 접수
-    // POST /api/reports/share-posts/{postId}
-    // ========================================
-    @Operation(summary = "게시글 신고", description = "나눔 게시글을 신고합니다.")
+    @Operation(summary = "Report share post", description = "Submit a report for a share post.")
     @PostMapping("/share-posts/{postId}")
     public ResponseEntity<ReportResponseDto> reportSharePost(
             @PathVariable Long postId,
@@ -55,11 +51,7 @@ public class ReportController {
         return ResponseEntity.ok(reportService.reportSharePost(postId, dto, reporterId));
     }
 
-    // ========================================
-    // 잘못된 정보 신고 접수 (첨부파일 포함)
-    // POST /api/reports/info  (multipart/form-data)
-    // ========================================
-    @Operation(summary = "잘못된 정보 신고", description = "웹사이트의 잘못된 정보를 신고합니다. PDF/이미지 첨부 가능 (최대 10MB)")
+    @Operation(summary = "Report wrong info", description = "Submit a wrong information report. PDF/image attachment supported up to 10MB.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             content = @Content(
                     mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
@@ -76,11 +68,7 @@ public class ReportController {
         return ResponseEntity.ok(reportService.reportInfo(dto, file, reporterId));
     }
 
-    // ========================================
-    // 관리자: 신고 목록 조회
-    // GET /api/reports/admin?type=SHARE_POST&status=PENDING
-    // ========================================
-    @Operation(summary = "[관리자] 신고 목록 조회", description = "타입/상태 필터 가능. 최신순 정렬.")
+    @Operation(summary = "[Admin] Get reports", description = "Get reports with optional type/status filters.")
     @GetMapping("/admin")
     public ResponseEntity<Page<ReportResponseDto>> getReports(
             @RequestParam(required = false) ReportType type,
@@ -90,21 +78,13 @@ public class ReportController {
         return ResponseEntity.ok(reportService.getReports(type, status, pageable));
     }
 
-    // ========================================
-    // 관리자: 신고 상세 조회
-    // GET /api/reports/admin/{reportId}
-    // ========================================
-    @Operation(summary = "[관리자] 신고 상세 조회")
+    @Operation(summary = "[Admin] Get report detail")
     @GetMapping("/admin/{reportId}")
     public ResponseEntity<ReportResponseDto> getReport(@PathVariable Long reportId) {
         return ResponseEntity.ok(reportService.getReport(reportId));
     }
 
-    // ========================================
-    // 관리자: 신고 처리 상태 변경
-    // PATCH /api/reports/admin/{reportId}/status
-    // ========================================
-    @Operation(summary = "[관리자] 신고 처리 상태 변경", description = "PENDING → IN_REVIEW → RESOLVED / DISMISSED")
+    @Operation(summary = "[Admin] Update report status", description = "PENDING -> IN_REVIEW -> RESOLVED / DISMISSED")
     @PatchMapping("/admin/{reportId}/status")
     public ResponseEntity<ReportResponseDto> updateStatus(
             @PathVariable Long reportId,
@@ -114,11 +94,27 @@ public class ReportController {
         return ResponseEntity.ok(reportService.updateReportStatus(reportId, status, adminNote));
     }
 
-    // ========================================
-    // 신고 사유 목록 조회 (프론트 드롭다운용)
-    // GET /api/reports/reasons
-    // ========================================
-    @Operation(summary = "신고 사유 목록", description = "게시글 신고 시 선택 가능한 사유 목록을 반환합니다.")
+    @Operation(summary = "[Admin] Dismiss share-post reports", description = "Bulk update PENDING/IN_REVIEW reports to DISMISSED for a post.")
+    @PatchMapping("/admin/share-posts/{postId}/dismiss")
+    public ResponseEntity<Map<String, Object>> dismissSharePostReports(
+            @PathVariable Long postId,
+            @RequestParam(required = false) String adminNote) {
+
+        int updatedCount = reportService.dismissSharePostReports(postId, adminNote);
+        return ResponseEntity.ok(Map.of("postId", postId, "updatedCount", updatedCount));
+    }
+
+    @Operation(summary = "[Admin] Delete reported post", description = "Soft-delete the post and bulk update PENDING/IN_REVIEW reports to RESOLVED.")
+    @PatchMapping("/admin/share-posts/{postId}/delete")
+    public ResponseEntity<Map<String, Object>> deleteSharePostAndResolveReports(
+            @PathVariable Long postId,
+            @RequestParam(required = false) String adminNote) {
+
+        int updatedCount = reportService.deleteSharePostAndResolveReports(postId, adminNote);
+        return ResponseEntity.ok(Map.of("postId", postId, "updatedCount", updatedCount));
+    }
+
+    @Operation(summary = "Get report reasons", description = "Return selectable reasons for share-post report.")
     @GetMapping("/reasons")
     public ResponseEntity<List<Map<String, String>>> getReasons() {
         List<Map<String, String>> reasons = Arrays.stream(ReportReason.values())
@@ -127,14 +123,14 @@ public class ReportController {
         return ResponseEntity.ok(reasons);
     }
 
-    // ========================================
-    // 편의 메서드
-    // ========================================
     private Long getUserId(UserDetails userDetails) {
-        if (userDetails == null) return null;
+        if (userDetails == null) {
+            return null;
+        }
+
         String email = userDetails.getUsername();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found."));
         return user.getId();
     }
 }

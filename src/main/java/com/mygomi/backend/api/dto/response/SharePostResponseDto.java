@@ -19,33 +19,39 @@ public class SharePostResponseDto {
     private Long userId;
     private String title;
     private String description;
-    
-    private Integer viewCount;  // 조회수
-    
+
+    private Integer viewCount;
+
     private ShareCategory category;
     private String categoryName;
     private ShareStatus status;
     private String statusName;
-    
+
     private String prefecture;
     private String ward;
     private String town;
     private Double lat;
     private Double lng;
-    
+
     private List<String> imageUrls;
     private String thumbnailUrl;
-    
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    
-    private Double distance;  // km 단위 (nearby API 전용)
+
+    private Double distance;
+    private boolean reported;
+    private int pendingReportCount;
 
     public static SharePostResponseDto from(SharePost post) {
+        return from(post, 0L);
+    }
+
+    public static SharePostResponseDto from(SharePost post, long pendingReportCount) {
         List<String> imageUrls = post.getImages().stream()
                 .map(img -> img.getImageUrl())
                 .collect(Collectors.toList());
-        
+
         return SharePostResponseDto.builder()
                 .id(post.getId())
                 .userId(post.getUserId())
@@ -65,11 +71,17 @@ public class SharePostResponseDto {
                 .thumbnailUrl(imageUrls.isEmpty() ? null : imageUrls.get(0))
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
+                .reported(pendingReportCount > 0)
+                .pendingReportCount(Math.toIntExact(pendingReportCount))
                 .build();
     }
-    
+
     public static SharePostResponseDto fromWithDistance(SharePost post, Double distance) {
-        SharePostResponseDto dto = from(post);
+        return fromWithDistance(post, distance, 0L);
+    }
+
+    public static SharePostResponseDto fromWithDistance(SharePost post, Double distance, long pendingReportCount) {
+        SharePostResponseDto dto = from(post, pendingReportCount);
         return SharePostResponseDto.builder()
                 .id(dto.getId())
                 .userId(dto.getUserId())
@@ -90,6 +102,8 @@ public class SharePostResponseDto {
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .distance(distance)
+                .reported(dto.isReported())
+                .pendingReportCount(dto.getPendingReportCount())
                 .build();
     }
 }

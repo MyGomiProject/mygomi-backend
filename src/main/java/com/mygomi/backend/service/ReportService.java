@@ -35,20 +35,20 @@ public class ReportService {
     private final UserRepository userRepository;
     private final SharePostRepository sharePostRepository;
 
-    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024L; // 10MB
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024L;
     private static final List<String> ALLOWED_TYPES = List.of(
             "image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"
     );
     private static final String UPLOAD_DIR = "C:/mygomi-uploads/reports/";
+    private static final List<ReportStatus> PENDING_REPORT_STATUSES = List.of(
+            ReportStatus.PENDING,
+            ReportStatus.IN_REVIEW
+    );
 
-    // ========================================
-    // 게시글 신고 접수
-    // ========================================
     @Transactional
     public ReportResponseDto reportSharePost(Long postId, SharePostReportRequestDto dto, Long reporterId) {
-
         SharePost post = sharePostRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 게시글입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("Post does not exist."));
 
         User reporter = null;
         if (reporterId != null) {
@@ -68,18 +68,14 @@ public class ReportService {
 
         reportRepository.save(report);
 
-        log.info("📢 [신고 접수] 게시글 신고 - postId={}, reason={}, emailReply={}",
+        log.info("[Report submitted] share-post postId={}, reason={}, emailReply={}",
                 postId, dto.getReason(), dto.isEmailReply());
 
         return ReportResponseDto.from(report);
     }
 
-    // ========================================
-    // 잘못된 정보 신고 접수 (첨부파일 포함)
-    // ========================================
     @Transactional
     public ReportResponseDto reportInfo(InfoReportRequestDto dto, MultipartFile file, Long reporterId) {
-
         User reporter = null;
         if (reporterId != null) {
             reporter = userRepository.findById(reporterId).orElse(null);
@@ -102,15 +98,12 @@ public class ReportService {
 
         reportRepository.save(report);
 
-        log.info("📢 [신고 접수] 정보 신고 - title={}, hasFile={}, emailReply={}",
+        log.info("[Report submitted] info title={}, hasFile={}, emailReply={}",
                 dto.getTitle(), attachmentUrl != null, dto.isEmailReply());
 
         return ReportResponseDto.from(report);
     }
 
-    // ========================================
-    // 관리자: 신고 목록 조회
-    // ========================================
     @Transactional(readOnly = true)
     public Page<ReportResponseDto> getReports(ReportType type, ReportStatus status, Pageable pageable) {
         Page<Report> reports;
@@ -128,44 +121,69 @@ public class ReportService {
         return reports.map(ReportResponseDto::from);
     }
 
-    // ========================================
-    // 관리자: 신고 상세 조회
-    // ========================================
     @Transactional(readOnly = true)
     public ReportResponseDto getReport(Long reportId) {
         Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 신고입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("Report does not exist."));
         return ReportResponseDto.from(report);
     }
 
-    // ========================================
-    // 관리자: 신고 상태 변경
-    // ========================================
     @Transactional
     public ReportResponseDto updateReportStatus(Long reportId, ReportStatus status, String adminNote) {
         Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 신고입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("Report does not exist."));
 
         report.updateStatus(status, adminNote);
 
-        log.info("✅ [신고 처리] reportId={}, status={}", reportId, status);
+        log.info("[Report handled] reportId={}, status={}", reportId, status);
 
         return ReportResponseDto.from(report);
     }
 
-    // ========================================
-    // 첨부파일 저장 (PDF / 이미지, 10MB 제한)
-    // ========================================
+    @Transactional
+    public int dismissSharePostReports(Long postId, String adminNote) {
+        sharePostRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post does not exist."));
+
+        int updatedCount = reportRepository.bulkUpdateSharePostReportStatus(
+                postId,
+                ReportType.SHARE_POST,
+                PENDING_REPORT_STATUSES,
+                ReportStatus.DISMISSED,
+                adminNote
+        );
+
+        log.info("[Reports dismissed] postId={}, dismissedCount={}", postId, updatedCount);
+        return updatedCount;
+    }
+
+    @Transactional
+    public int deleteSharePostAndResolveReports(Long postId, String adminNote) {
+        SharePost post = sharePostRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post does not exist."));
+
+        post.softDelete();
+
+        int updatedCount = reportRepository.bulkUpdateSharePostReportStatus(
+                postId,
+                ReportType.SHARE_POST,
+                PENDING_REPORT_STATUSES,
+                ReportStatus.RESOLVED,
+                adminNote
+        );
+
+        log.info("[Post deleted and reports resolved] postId={}, resolvedCount={}", postId, updatedCount);
+        return updatedCount;
+    }
+
     private String saveAttachment(MultipartFile file) {
-        // 파일 크기 검사
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("파일 크기는 10MB를 초과할 수 없습니다.");
+            throw new IllegalArgumentException("File size cannot exceed 10MB.");
         }
 
-        // 파일 타입 검사
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
-            throw new IllegalArgumentException("PDF 또는 이미지 파일만 첨부 가능합니다.");
+            throw new IllegalArgumentException("Only PDF or image files are allowed.");
         }
 
         try {
@@ -186,7 +204,7 @@ public class ReportService {
             return "/uploads/reports/" + savedFilename;
 
         } catch (IOException e) {
-            throw new RuntimeException("파일 저장 중 오류가 발생했습니다.", e);
+            throw new RuntimeException("Failed to save attachment.", e);
         }
     }
 }

@@ -10,11 +10,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface SharePostRepository extends JpaRepository<SharePost, Long> {
     
     // 기본 조회
     List<SharePost> findByUserId(Long userId);
+    List<SharePost> findByUserIdAndStatusNot(Long userId, ShareStatus status);
+    Optional<SharePost> findByIdAndStatusNot(Long id, ShareStatus status);
     
     // 지역별 조회 (구 기준)
     Page<SharePost> findByWardAndStatusOrderByCreatedAtDesc(String ward, ShareStatus status, Pageable pageable);

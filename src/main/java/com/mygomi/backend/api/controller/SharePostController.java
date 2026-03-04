@@ -1,11 +1,14 @@
 package com.mygomi.backend.api.controller;
 
-import com.mygomi.backend.api.dto.response.CommonResponse;
 import com.mygomi.backend.api.dto.request.SharePostRequestDto;
+import com.mygomi.backend.api.dto.response.CommonResponse;
 import com.mygomi.backend.api.dto.response.SharePostResponseDto;
+import com.mygomi.backend.domain.address.UserAddress;
+import com.mygomi.backend.domain.share.ShareCategory;
 import com.mygomi.backend.domain.share.ShareStatus;
 import com.mygomi.backend.domain.user.User;
 import com.mygomi.backend.repository.UserRepository;
+import com.mygomi.backend.service.AddressService;
 import com.mygomi.backend.service.SharePostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -23,14 +26,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-@Tag(name = "Share Posts", description = "나눔 게시글 API")
+@Tag(name = "Share Posts", description = "Share post API")
 @RestController
 @RequestMapping("/api/share-posts")
 @RequiredArgsConstructor
@@ -38,9 +50,9 @@ public class SharePostController {
 
     private final SharePostService sharePostService;
     private final UserRepository userRepository;
-    private final com.mygomi.backend.service.AddressService addressService; // [추가] 주소 서비스
+    private final AddressService addressService;
 
-    @Operation(summary = "게시글 등록", description = "이미지와 함께 게시글을 등록합니다 (최대 5장)")
+    @Operation(summary = "Create post", description = "Creates a share post with optional images (max 5).")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             content = @Content(
                     mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
@@ -50,13 +62,10 @@ public class SharePostController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CommonResponse<SharePostResponseDto>> createPost(
             @AuthenticationPrincipal UserDetails userDetails,
-
             @RequestPart("request") @Valid SharePostRequestDto request,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) {
 
-            @RequestPart(value = "images", required = false) List<MultipartFile> images) throws IOException {
-
-        Long userId = getUserIdFromToken(userDetails); // 아래 헬퍼 메서드 사용 (혹은 userDetails.getUser().getId())
-
+        Long userId = getUserIdFromToken(userDetails);
         SharePostResponseDto response = sharePostService.createPost(userId, request, images);
 
         return ResponseEntity
@@ -64,92 +73,86 @@ public class SharePostController {
                 .body(CommonResponse.success(response));
     }
 
-    @Operation(summary = "게시글 조회 (단건)", description = "게시글 ID로 상세 정보를 조회합니다")
+    @Operation(summary = "Get post detail", description = "Returns a single share post by id.")
     @GetMapping("/{id}")
     public ResponseEntity<CommonResponse<SharePostResponseDto>> getPost(@PathVariable Long id) {
         SharePostResponseDto response = sharePostService.getPost(id);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-    @Operation(summary = "게시글 목록 조회", description = "지역별/상태별로 게시글 목록을 조회합니다 sort내부의 String 제거후 테스트")
+    @Operation(summary = "Get post list", description = "Returns share posts with optional ward/category/status filters.")
     @GetMapping
     public ResponseEntity<CommonResponse<Page<SharePostResponseDto>>> getPosts(
             @RequestParam(required = false) String ward,
-            @RequestParam(required = false) com.mygomi.backend.domain.share.ShareCategory category,
+            @RequestParam(required = false) ShareCategory category,
             @RequestParam(defaultValue = "OPEN") ShareStatus status,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        
+
         Page<SharePostResponseDto> response = sharePostService.getPosts(ward, category, status, pageable);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-    @Operation(summary = "내 게시글 조회", description = "로그인한 사용자의 게시글 목록을 조회합니다")
+    @Operation(summary = "Get my posts", description = "Returns posts created by the logged-in user.")
     @GetMapping("/me")
     public ResponseEntity<CommonResponse<List<SharePostResponseDto>>> getMyPosts(
             @AuthenticationPrincipal UserDetails userDetails) {
-        
+
         Long userId = getUserIdFromToken(userDetails);
-        
         List<SharePostResponseDto> response = sharePostService.getMyPosts(userId);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-    @Operation(summary = "게시글 수정", description = "게시글을 수정합니다 (작성자만 가능)")
+    @Operation(summary = "Update post", description = "Updates a share post. Only the owner can update.")
     @PutMapping("/{id}")
     public ResponseEntity<CommonResponse<SharePostResponseDto>> updatePost(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long id,
             @Valid @RequestBody SharePostRequestDto request) {
-        
+
         Long userId = getUserIdFromToken(userDetails);
-        
         SharePostResponseDto response = sharePostService.updatePost(userId, id, request);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-    @Operation(summary = "게시글 삭제", description = "게시글을 삭제합니다 (작성자만 가능, Soft Delete)")
+    @Operation(summary = "Delete post", description = "Soft-deletes a share post. Only the owner can delete.")
     @DeleteMapping("/{id}")
     public ResponseEntity<CommonResponse<String>> deletePost(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long id) {
-        
+
         Long userId = getUserIdFromToken(userDetails);
-        
         sharePostService.deletePost(userId, id);
-        return ResponseEntity.ok(CommonResponse.success("게시글이 삭제되었습니다"));
+        return ResponseEntity.ok(CommonResponse.success("Post deleted successfully."));
     }
 
-    // 카테고리 목록 조회
-    @Operation(summary = "카테고리 목록 조회", description = "게시글 작성 시 선택할 수 있는 카테고리 목록을 반환합니다.")
+    @Operation(summary = "Get categories", description = "Returns available categories for share posts.")
     @GetMapping("/categories")
     public ResponseEntity<CommonResponse<List<Map<String, String>>>> getCategories() {
-        // Enum -> List<Map> 변환 로직
-        List<Map<String, String>> categories = java.util.Arrays.stream(com.mygomi.backend.domain.share.ShareCategory.values())
+        List<Map<String, String>> categories = java.util.Arrays.stream(ShareCategory.values())
                 .map(category -> java.util.Map.of(
-                        "code", category.name(),           // 예: FURNITURE
-                        "label", category.getDescription() // 예: 가구/인테리어
+                        "code", category.name(),
+                        "label", category.getDescription()
                 ))
-                .collect(java.util.stream.Collectors.toList());
+                .toList();
 
         return ResponseEntity.ok(CommonResponse.success(categories));
     }
 
-    @Operation(summary = "게시글 상태 변경", description = "게시글 상태를 변경합니다 (OPEN/RESERVED/COMPLETED)")
+    @Operation(summary = "Update post status", description = "Updates post status (OPEN/RESERVED/COMPLETED).")
     @PatchMapping("/{id}/status")
     public ResponseEntity<CommonResponse<SharePostResponseDto>> updateStatus(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long id,
             @RequestParam ShareStatus status) {
-        
+
         Long userId = getUserIdFromToken(userDetails);
-        
         SharePostResponseDto response = sharePostService.updateStatus(userId, id, status);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
     @Operation(
-        summary = "내 주소 근처 게시글 조회",
-        description = "로그인한 사용자의 대표 주소 기준으로 반경 내 게시글을 조회합니다"
+            summary = "Get nearby posts by my primary address",
+            description = "Returns posts near the logged-in user's primary address."
     )
     @GetMapping("/nearby/me")
     public ResponseEntity<CommonResponse<Page<SharePostResponseDto>>> getNearbyPostsByMyAddress(
@@ -157,35 +160,29 @@ public class SharePostController {
             @RequestParam(defaultValue = "5.0") Double radiusKm,
             @RequestParam(defaultValue = "distance") String sortBy,
             @PageableDefault(size = 20) Pageable pageable) {
-        
-        // 1. 사용자 ID 가져오기
+
         Long userId = getUserIdFromToken(userDetails);
-        
-        // 2. 사용자의 대표 주소 가져오기
-        com.mygomi.backend.domain.address.UserAddress primaryAddress = addressService.getPrimaryAddress(userId);
-        
-        // 3. 대표 주소의 좌표로 반경 검색
+        UserAddress primaryAddress = addressService.getPrimaryAddress(userId);
+
         Page<SharePostResponseDto> response = sharePostService.getNearbyPosts(
-            primaryAddress.getLat(), 
-            primaryAddress.getLng(), 
-            radiusKm, 
-            sortBy, 
-            pageable
+                primaryAddress.getLat(),
+                primaryAddress.getLng(),
+                radiusKm,
+                sortBy,
+                pageable
         );
-        
+
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-    // 🕵️‍♂️ 편의 메서드: 토큰 정보(UserDetails)로 실제 유저 ID 찾기
     private Long getUserIdFromToken(UserDetails userDetails) {
         if (userDetails == null) {
-            throw new UsernameNotFoundException("로그인 정보가 없습니다.");
+            throw new UsernameNotFoundException("Login information is missing.");
         }
 
         String email = userDetails.getUsername();
-
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("가입되지 않은 사용자입니다. email=" + email));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found. email=" + email));
 
         return user.getId();
     }
