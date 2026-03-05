@@ -12,7 +12,6 @@ public enum ShareCategory {
     BOOKS("도서/음반"),
     KITCHENWARE("주방/생활"),
     SPORTS("스포츠/레저"),
-    TOYS("유아동/장난감"),
     ETC("기타");
 
     private final String description;
