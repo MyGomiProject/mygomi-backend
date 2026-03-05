@@ -36,16 +36,36 @@ public class AddressService {
             cleanChome = cleanChome.replace("丁目", "").trim();
         }
 
-        // 2. DB에서 후보군(List) 조회 (develop 로직 차용)
-        List<Area> candidateAreas;
-        if (cleanChome != null && !cleanChome.isEmpty()) {
-            candidateAreas = areaRepository.findByPrefectureAndWardAndTownAndChome(
-                    request.getPrefecture(), request.getWard(), request.getTown(), cleanChome
-            );
-        } else {
-            candidateAreas = areaRepository.findByPrefectureAndWardAndTownAndChomeIsNull(
-                    request.getPrefecture(), request.getWard(), request.getTown()
-            );
+        // 2. DB에서 후보군 조회 (1차 검색)
+        List<Area> candidateAreas = searchAreas(request, cleanChome, request.getTown());
+
+        // 🕵️‍♂️ 3. 1차 검색 실패 시 -> 외래어 표기법 차이 보정 후 2차, 3차 검색 진행
+        if (candidateAreas.isEmpty()) {
+            // [2차 검색] 흔히 틀리는 발음(가<->카, 도<->토, 주<->쥬 등) 상호 치환
+            String altTown = request.getTown()
+                    .replace("가", "카").replace("고", "코").replace("다", "타").replace("도", "토")
+                    .replace("주", "쥬").replace("조", "죠").replace("포", "뽀");
+
+            // 만약 이미 '카'메아리로 입력했다면 반대로 '가'메아리로 치환
+            if (altTown.equals(request.getTown())) {
+                altTown = request.getTown()
+                        .replace("카", "가").replace("코", "고").replace("타", "다").replace("토", "도")
+                        .replace("쥬", "주").replace("죠", "조").replace("뽀", "포");
+            }
+
+            candidateAreas = searchAreas(request, cleanChome, altTown);
+
+            // [3차 검색] 그래도 없다면 가장 강력한 방법: 첫 글자를 떼고 검색 ("가메아리" -> "메아리")
+            if (candidateAreas.isEmpty() && request.getTown().length() >= 3) {
+                String partialTown = request.getTown().substring(1);
+                candidateAreas = searchAreas(request, cleanChome, partialTown);
+            }
+        }
+
+        // 매칭되는 지역이 하나도 없을 경우 로그 남기기
+        if (candidateAreas.isEmpty()) {
+            log.warn("매칭되는 Area(수거 구역)를 찾을 수 없습니다: {} {} {}",
+                    request.getPrefecture(), request.getWard(), request.getTown());
         }
 
         // 3. 🕵️‍♂️ 번지수(Banchi)로 정확한 구역 찾기 (핵심 로직)
@@ -230,4 +250,24 @@ public class AddressService {
         // 3. 새로운 주소를 대표로 설정하기 (True)
         newPrimary.updatePrimary(true);
     }
+
+    // =========================================================================
+    // Helper Methods
+    // =========================================================================
+
+    /**
+     * DB에서 조건에 맞는 Area를 검색하는 공통 메서드
+     */
+    private List<Area> searchAreas(AddressRequestDto request, String cleanChome, String townName) {
+        if (cleanChome != null && !cleanChome.isEmpty()) {
+            return areaRepository.findCandidateAreas(
+                    request.getPrefecture(), request.getWard(), townName, cleanChome
+            );
+        } else {
+            return areaRepository.findCandidateAreasWithoutChome(
+                    request.getPrefecture(), request.getWard(), townName
+            );
+        }
+    }
 }
+
