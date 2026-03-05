@@ -75,12 +75,42 @@ public class SharePost extends BaseTimeEntity {
     // ========================================
 
     /**
-     * 게시글 수정
+     * 게시글 수정 (들어온 필드만 반영: null이면 기존 값 유지)
      */
-    public void update(String title, String description, ShareCategory category) {
-        this.title = title;
-        this.description = description;
-        this.category = category;
+    public void update(
+            String title,
+            String description,
+            ShareCategory category,
+            String prefecture,
+            String ward,
+            String town,
+            Double lat,
+            Double lng
+    ) {
+        if (title != null) {
+            this.title = title;
+        }
+        if (description != null) {
+            this.description = description;
+        }
+        if (category != null) {
+            this.category = category;
+        }
+        if (prefecture != null) {
+            this.prefecture = prefecture;
+        }
+        if (ward != null) {
+            this.ward = ward;
+        }
+        if (town != null) {
+            this.town = town;
+        }
+        if (lat != null) {
+            this.lat = lat;
+        }
+        if (lng != null) {
+            this.lng = lng;
+        }
     }
 
     /**

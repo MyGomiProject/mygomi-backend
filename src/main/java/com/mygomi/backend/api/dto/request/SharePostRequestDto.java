@@ -21,4 +21,20 @@ public class SharePostRequestDto {
 
     @Schema(description = "카테고리 (FURNITURE, ELECTRONICS, CLOTHING, BOOKS, KITCHENWARE, SPORTS, TOYS, ETC)", example = "FURNITURE")
     private ShareCategory category;
+
+    // 위치 정보 (선택) — 수정 시에만 들어올 수 있음
+    @Schema(description = "도/부/현", example = "도쿄도")
+    private String prefecture;
+
+    @Schema(description = "구/시", example = "신주쿠구")
+    private String ward;
+
+    @Schema(description = "동/정", example = "오쿠보")
+    private String town;
+
+    @Schema(description = "위도", example = "35.701")
+    private Double lat;
+
+    @Schema(description = "경도", example = "139.700")
+    private Double lng;
 }
