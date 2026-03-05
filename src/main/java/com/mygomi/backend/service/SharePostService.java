@@ -131,9 +131,25 @@ public class SharePostService {
     ) {
         SharePost post = findPostById(postId);
         validateOwner(post, userId);
-        post.update(request.getTitle(), request.getDescription(), request.getCategory());
+        // request JSON에 들어온 필드만 반영 (null 값은 무시)
+        post.update(
+                request.getTitle(),
+                request.getDescription(),
+                request.getCategory(),
+                request.getPrefecture(),
+                request.getWard(),
+                request.getTown(),
+                request.getLat(),
+                request.getLng()
+        );
 
-        applyImageChanges(post, newImages, deleteImageIds, replaceImages);
+        // 이미지 정책:
+        // - 새 images가 오면: 기존 이미지를 모두 비우고 새 파일들로 완전 교체
+        // - 새 images가 아예 안 오면: 기존 이미지를 그대로 유지
+        boolean hasNewImages = newImages != null && !filterValidImages(newImages).isEmpty();
+        if (hasNewImages) {
+            applyImageChanges(post, newImages, null, true);
+        }
 
         return toResponse(post);
     }
