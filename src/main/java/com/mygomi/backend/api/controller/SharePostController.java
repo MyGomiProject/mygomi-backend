@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -105,42 +105,63 @@ public class SharePostController {
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-    @Operation(summary = "Update post", description = "Updates a share post. Supports PATCH (recommended) and PUT.")
-    @RequestMapping(
-            value = "/{id}",
-            method = {RequestMethod.PATCH, RequestMethod.PUT},
-            consumes = MediaType.APPLICATION_JSON_VALUE
-    )
-    public ResponseEntity<CommonResponse<SharePostResponseDto>> updatePost(
+    @Operation(summary = "Update post (PATCH)", description = "Updates a share post. Request body JSON만 보냅니다. 들어온 필드만 반영됩니다.")
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<CommonResponse<SharePostResponseDto>> updatePostPatch(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long id,
             @Valid @RequestBody SharePostRequestDto request) {
-
         Long userId = getUserIdFromToken(userDetails);
         SharePostResponseDto response = sharePostService.updatePost(userId, id, request);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-    @Operation(summary = "Update post with image changes", description = "Updates post fields and supports image replace/delete/add in one request. Supports PATCH (recommended) and PUT.")
+    @Operation(summary = "Update post (PUT)", description = "Updates a share post. Request body JSON만 보냅니다. 들어온 필드만 반영됩니다.")
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<CommonResponse<SharePostResponseDto>> updatePostPut(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long id,
+            @Valid @RequestBody SharePostRequestDto request) {
+        Long userId = getUserIdFromToken(userDetails);
+        SharePostResponseDto response = sharePostService.updatePost(userId, id, request);
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    @Operation(summary = "Update post with images (PATCH)", description = "multipart/form-data: request(JSON) + images. 이미지가 오면 기존 이미지를 새 파일로 완전 교체, 없으면 유지.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             content = @Content(
                     mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
                     encoding = @Encoding(name = "request", contentType = MediaType.APPLICATION_JSON_VALUE)
             )
     )
-    @RequestMapping(
-            value = "/{id}",
-            method = {RequestMethod.PATCH, RequestMethod.PUT},
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
-    public ResponseEntity<CommonResponse<SharePostResponseDto>> updatePostWithImages(
+    @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CommonResponse<SharePostResponseDto>> updatePostWithImagesPatch(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long id,
             @RequestPart("request") @Valid SharePostRequestDto request,
             @RequestPart(value = "images", required = false) List<MultipartFile> images,
             @RequestParam(value = "deleteImageIds", required = false) List<Long> deleteImageIds,
             @RequestParam(value = "replaceImages", defaultValue = "false") boolean replaceImages) {
+        Long userId = getUserIdFromToken(userDetails);
+        SharePostResponseDto response = sharePostService.updatePost(userId, id, request, images, deleteImageIds, replaceImages);
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
 
+    @Operation(summary = "Update post with images (PUT)", description = "multipart/form-data: request(JSON) + images. 이미지가 오면 기존 이미지를 새 파일로 완전 교체, 없으면 유지.")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            content = @Content(
+                    mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                    encoding = @Encoding(name = "request", contentType = MediaType.APPLICATION_JSON_VALUE)
+            )
+    )
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CommonResponse<SharePostResponseDto>> updatePostWithImagesPut(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long id,
+            @RequestPart("request") @Valid SharePostRequestDto request,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestParam(value = "deleteImageIds", required = false) List<Long> deleteImageIds,
+            @RequestParam(value = "replaceImages", defaultValue = "false") boolean replaceImages) {
         Long userId = getUserIdFromToken(userDetails);
         SharePostResponseDto response = sharePostService.updatePost(userId, id, request, images, deleteImageIds, replaceImages);
         return ResponseEntity.ok(CommonResponse.success(response));
